@@ -1,0 +1,60 @@
+// Test fixture for protoc-gen-go-aip fieldmask pass. Each request
+// message exercises a different branch of the detector:
+//
+//   - UpdateBookRequest: AIP-134 shape (Book + FieldMask) — Validate() emitted.
+//   - PatchBookRequest:  same shape with non-conventional naming — emitted.
+//   - GetBookRequest:    read_mask but no message field — skipped.
+//   - WeirdRequest:      two non-mask message fields — ambiguous, skipped.
+//   - NoMaskRequest:     message field but no FieldMask — skipped.
+//
+// Regenerate with `buf generate` from the repo root.
+syntax = "proto3";
+
+package testpb;
+
+import "google/protobuf/field_mask.proto";
+
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/fieldmask/testpb;testpb";
+
+message Book {
+  string name = 1;
+  string title = 2;
+  string author = 3;
+  int64 read_count = 4;
+}
+
+// UpdateBookRequest is the canonical AIP-134 shape: a single Book field
+// paired with a single update_mask. Validate() is emitted.
+message UpdateBookRequest {
+  Book book = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// PatchBookRequest exercises non-conventional naming — the resource field
+// is `target` and the mask is `mask`. Detection is structural, so
+// Validate() is still emitted.
+message PatchBookRequest {
+  Book target = 1;
+  google.protobuf.FieldMask mask = 2;
+}
+
+// GetBookRequest carries a read_mask but no embedded message — there is
+// nothing to validate the mask against, so Validate() is not emitted.
+message GetBookRequest {
+  string name = 1;
+  google.protobuf.FieldMask read_mask = 2;
+}
+
+// WeirdRequest has two non-mask message fields, so the target is
+// ambiguous. Validate() is not emitted.
+message WeirdRequest {
+  Book a = 1;
+  Book b = 2;
+  google.protobuf.FieldMask mask = 3;
+}
+
+// NoMaskRequest has a message field but no FieldMask. Validate() is not
+// emitted.
+message NoMaskRequest {
+  Book book = 1;
+}

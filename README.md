@@ -8,7 +8,8 @@ AIP](https://aip.dev) resource patterns and List-RPC query handling. It is
 a unification of two earlier `protoc-contrib` plugins, with selected
 additions adopted from [`go.einride.tech/aip`](https://github.com/einride/aip-go).
 
-For each `.proto` it emits two companion files in the same Go package:
+For each `.proto` it emits up to three companion files in the same Go
+package:
 
 - **`*_aip.pb.resource.go`** — resource-name parsers and helpers driven
   by `google.api.resource` and `google.api.resource_reference`.
@@ -16,6 +17,9 @@ For each `.proto` it emits two companion files in the same Go package:
   AIP-158 pagination helpers driven by `(protoc_contrib.aip.filterable)`,
   `(protoc_contrib.aip.orderable)`, and `(protoc_contrib.aip.column)`
   field options.
+- **`*_aip.pb.fieldmask.go`** — `Validate()` on AIP-134 update-request
+  shaped messages, delegating to
+  [`go.einride.tech/aip/fieldmask.Validate`](https://pkg.go.dev/go.einride.tech/aip/fieldmask#Validate).
 
 > **⚠ Binary-name collision.** This plugin's binary is `protoc-gen-go-aip`,
 > the same name used by the upstream einride plugin under
@@ -76,6 +80,21 @@ For each `.proto` it emits two companion files in the same Go package:
 - **`<Resource>Columns`** — a `map[string]string` projecting filterable
   / orderable fields to their backing DB column names, overridable via
   `(protoc_contrib.aip.column)`.
+
+### Fieldmask pass
+
+- **`Validate()`** — for any message that pairs exactly one
+  `google.protobuf.FieldMask` field with exactly one other singular
+  message-typed field (the AIP-134 update-request shape, e.g.
+  `UpdateBookRequest { Book book = 1; FieldMask update_mask = 2; }`),
+  emits a `Validate()` method that delegates to
+  `fieldmask.Validate(mask, target)`. A nil mask is accepted as full
+  replacement; `"*"` is accepted only as the sole path; every other path
+  must resolve to a field on the target message. Detection is purely
+  structural — the rule applies regardless of whether the request is
+  named `Update*Request`, `Patch*Request`, or otherwise. Messages with
+  zero or two-plus message-typed fields are silently skipped to avoid
+  emitting half-validated code.
 
 ## Migration
 

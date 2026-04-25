@@ -11,6 +11,8 @@ modules:
     name: buf.build/protoc-contrib/protoc-gen-go-aip-resource-testpb
   - path: internal/generator/query/testpb
     name: buf.build/protoc-contrib/protoc-gen-go-aip-query-testpb
+  - path: internal/generator/fieldmask/testpb
+    name: buf.build/protoc-contrib/protoc-gen-go-aip-fieldmask-testpb
 
 deps:
   - buf.build/googleapis/googleapis
