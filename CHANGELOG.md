@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.0.1...v0.1.0) (2026-04-25)
+
+
+### Features
+
+* add fieldmask pass for AIP-134 update request validation ([0906222](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/090622289def1630ee2f622a896f9277e5d90407))
+* add protoc-gen-go-aip plugin for resource names and query helpers ([bdfed97](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/bdfed9791864f18560335e6c03bd610f0af91893))
+
 ## v0.1.0
 
 Initial release. This plugin merges the previously separate
