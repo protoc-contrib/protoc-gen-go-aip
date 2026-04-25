@@ -1,22 +1,21 @@
 version: v2
 
-# The plugin itself does not ship any .proto files outside the
-# query.proto field-options module. The fixture trees under
-# internal/generator/{resource,query}/testpb exist only to exercise the
-# generators.
+# Single-module workspace. The public field-options module's root is the
+# repo root, so the file ships to BSR as `protoc_contrib/aip/query.proto`
+# — consumers import it by that path. The testpb trees under
+# internal/generator/{resource,query,fieldmask}/testpb are excluded;
+# they exist only to exercise the generators.
+#
+# To regenerate testpb fixtures: comment out the `excludes` block below,
+# run `buf generate`, and restore the block. (Same workflow as the
+# sibling protoc-contrib plugins.)
 modules:
-  # Public field-options module — the only one CI publishes to BSR.
-  # CI explicitly targets this module's path: `buf push protoc_contrib/aip ...`
-  # The testpb modules below are named so cross-module workspace imports
-  # resolve, but they are never pushed.
-  - path: protoc_contrib/aip
+  - path: .
     name: buf.build/protoc-contrib/protoc-gen-go-aip
-  - path: internal/generator/resource/testpb
-    name: buf.build/protoc-contrib/protoc-gen-go-aip-resource-testpb
-  - path: internal/generator/query/testpb
-    name: buf.build/protoc-contrib/protoc-gen-go-aip-query-testpb
-  - path: internal/generator/fieldmask/testpb
-    name: buf.build/protoc-contrib/protoc-gen-go-aip-fieldmask-testpb
+    excludes:
+      - internal/generator/resource/testpb
+      - internal/generator/query/testpb
+      - internal/generator/fieldmask/testpb
 
 deps:
   - buf.build/googleapis/googleapis
