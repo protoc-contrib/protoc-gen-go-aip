@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package tests.simple;
+
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip-resource/internal/generator/testpb/simple";
+
+import "google/api/resource.proto";
+
+// Thing exercises a single-segment resource pattern.
+message Thing {
+  option (google.api.resource) = {
+    type: "example.com/Thing"
+    pattern: "things/{thing}"
+  };
+
+  string name = 1;
+}
+
+// Project is the parent of ProjectThing. Declaring it separately lets the
+// generator bind ProjectThing.Parent() to ProjectName.
+message Project {
+  option (google.api.resource) = {
+    type: "example.com/Project"
+    pattern: "projects/{project}"
+  };
+
+  string name = 1;
+}
+
+// ProjectThing exercises a multi-segment, single-pattern resource. Its parent
+// pattern matches Project above, so Parent() returns ProjectName.
+message ProjectThing {
+  option (google.api.resource) = {
+    type: "example.com/ProjectThing"
+    pattern: "projects/{project}/things/{thing}"
+  };
+
+  string name = 1;
+}

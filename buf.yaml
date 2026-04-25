@@ -1,0 +1,32 @@
+version: v2
+
+# The plugin itself does not ship any .proto files outside the
+# query.proto field-options module. The fixture trees under
+# internal/generator/{resource,query}/testpb exist only to exercise the
+# generators.
+modules:
+  - path: protoc_contrib/aip
+    name: buf.build/protoc-contrib/protoc-gen-go-aip
+  - path: internal/generator/resource/testpb
+    name: buf.build/protoc-contrib/protoc-gen-go-aip-resource-testpb
+  - path: internal/generator/query/testpb
+    name: buf.build/protoc-contrib/protoc-gen-go-aip-query-testpb
+
+deps:
+  - buf.build/googleapis/googleapis
+
+lint:
+  use:
+    - BASIC
+  except:
+    # Fixture packages intentionally use the plain "tests.*" style rather
+    # than a versioned package suffix.
+    - PACKAGE_VERSION_SUFFIX
+    - PACKAGE_DIRECTORY_MATCH
+    # reference.proto imports simple/external so the Go generator can see
+    # their resource types at codegen time, even though the imports aren't
+    # referenced in the proto syntax.
+    - IMPORT_USED
+breaking:
+  use:
+    - FILE

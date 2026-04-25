@@ -1,0 +1,36 @@
+// Field options consumed by protoc-gen-go-aip-query to drive List-method
+// codegen for AIP-132 (ordering) and AIP-160 (filtering).
+//
+// Annotate fields on a message that carries `google.api.resource`. The
+// plugin finds the matching `List{Plural}Request` (by inspecting the
+// `repeated {Resource}` field on `List{Plural}Response`) and emits
+// per-request ParseOrderBy / ParseFilter methods plus per-resource
+// package-level vars ({Resource}OrderByFields, {Resource}FilterDeclarations,
+// {Resource}Columns) that the methods reference.
+syntax = "proto3";
+
+package protoc_contrib.aip;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip-query/protoc_contrib/aip;aip";
+
+extend google.protobuf.FieldOptions {
+  // When true on a resource field, it may appear in
+  // `List{Resource}Request.order_by` (AIP-132). The plugin emits the
+  // field's proto name into {Resource}OrderByFields.
+  bool orderable = 50001;
+
+  // When true on a resource field, it may appear in
+  // `List{Resource}Request.filter` (AIP-160). The plugin emits a
+  // `filtering.Declarations` entry with the CEL type inferred from the
+  // field's kind into {Resource}FilterDeclarations.
+  bool filterable = 50002;
+
+  // Overrides the backing DB column name exposed in the generated
+  // {Resource}Columns map. Only meaningful when the field is also
+  // annotated orderable and/or filterable; otherwise the field is
+  // absent from the map. When unset, callers should fall back to
+  // the proto field name.
+  string column = 50003;
+}

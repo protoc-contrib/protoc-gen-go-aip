@@ -1,0 +1,60 @@
+// Test fixture for protoc-gen-go-aip-query. The Book resource exercises both
+// AIP-132 orderable fields (title, create_time) and AIP-160 filterable
+// fields (title as TypeString, author as TypeString, read_count as
+// TypeInt, published as TypeBool, genre as TypeEnum, create_time as
+// TypeTimestamp). ListBooksRequest + ListBooksResponse drive the
+// request/response discovery convention.
+//
+// Regenerate: remove the internal/generator/testpb exclude from buf.yaml,
+// run `buf generate`, restore the exclude.
+syntax = "proto3";
+
+package testpb;
+
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc_contrib/aip/query.proto";
+
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip-query/internal/generator/testpb;testpb";
+
+enum Genre {
+  GENRE_UNSPECIFIED = 0;
+  GENRE_FICTION = 1;
+  GENRE_NONFICTION = 2;
+}
+
+message Book {
+  option (google.api.resource) = {
+    type: "testpb/Book"
+    pattern: "books/{book}"
+    plural: "books"
+    singular: "book"
+  };
+
+  string name = 1;
+  string title = 2 [
+    (protoc_contrib.aip.filterable) = true,
+    (protoc_contrib.aip.orderable) = true
+  ];
+  string author = 3 [(protoc_contrib.aip.filterable) = true];
+  int64 read_count = 4 [(protoc_contrib.aip.filterable) = true];
+  bool published = 5 [(protoc_contrib.aip.filterable) = true];
+  Genre genre = 6 [(protoc_contrib.aip.filterable) = true];
+  google.protobuf.Timestamp create_time = 7 [
+    (protoc_contrib.aip.filterable) = true,
+    (protoc_contrib.aip.orderable) = true,
+    (protoc_contrib.aip.column) = "created_at"
+  ];
+}
+
+message ListBooksRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string filter = 3;
+  string order_by = 4;
+}
+
+message ListBooksResponse {
+  repeated Book books = 1;
+  string next_page_token = 2;
+}
