@@ -99,6 +99,105 @@ package:
   zero or two-plus message-typed fields are silently skipped to avoid
   emitting half-validated code.
 
+## Example
+
+Given this `books.proto`:
+
+```proto
+syntax = "proto3";
+
+package books.v1;
+
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc_contrib/aip/query.proto";
+
+message Book {
+  option (google.api.resource) = {
+    type: "library.example.com/Book"
+    pattern: "books/{book}"
+  };
+
+  string name = 1;
+  string title = 2 [
+    (protoc_contrib.aip.filterable) = true,
+    (protoc_contrib.aip.orderable) = true
+  ];
+  string author = 3 [(protoc_contrib.aip.filterable) = true];
+  google.protobuf.Timestamp create_time = 4 [
+    (protoc_contrib.aip.orderable) = true,
+    (protoc_contrib.aip.column) = "created_at"
+  ];
+}
+
+message ListBooksRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string filter = 3;
+  string order_by = 4;
+}
+
+message ListBooksResponse {
+  repeated Book books = 1;
+  string next_page_token = 2;
+}
+
+message UpdateBookRequest {
+  Book book = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+```
+
+`buf generate` produces three companion files. The highlights:
+
+**`books_aip.pb.resource.go`** — resource-name parser:
+
+```go
+type BookName struct {
+    BookID string
+}
+
+func ParseBookName(s string) (BookName, error)
+func (n BookName)  String() string
+func (n BookName)  Validate() error
+func (x *Book)     ParseName() (BookName, error)
+```
+
+**`books_aip.pb.query.go`** — List-RPC parsers:
+
+```go
+var BookOrderByFields = []string{"title", "create_time"}
+var BookColumns       = map[string]string{"create_time": "created_at"}
+
+func (x *ListBooksRequest) ParseFilter()    (filtering.Filter, error)
+func (x *ListBooksRequest) ParseOrderBy()   (ordering.OrderBy, error)
+func (x *ListBooksRequest) ParsePageToken() (pagination.PageToken, error)
+func (x *ListBooksRequest) ParseQuery()     (Query, error)
+```
+
+**`books_aip.pb.fieldmask.go`** — update-mask validator:
+
+```go
+// Validate delegates to fieldmask.Validate(x.UpdateMask, x.Book).
+func (x *UpdateBookRequest) Validate() error
+```
+
+Call sites stay terse:
+
+```go
+name, err := ParseBookName("books/foo")        // BookName{BookID: "foo"}, nil
+
+q, err := req.ParseQuery()                     // filter + order_by + page_token in one call
+//   q.Filter.CheckedExpr   — CEL-validated against Book's filterable fields
+//   q.OrderBy.Fields       — paths checked against BookOrderByFields
+//   q.PageToken.Offset     — pagination cursor; checksum verifies request stability
+
+if err := updateReq.Validate(); err != nil {   // update_mask references a non-Book field
+    return status.Error(codes.InvalidArgument, err.Error())
+}
+```
+
 ## Installation
 
 ```bash
