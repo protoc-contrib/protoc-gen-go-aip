@@ -3,4 +3,4 @@
 .bin
 /result
 coverage.out
-/protoc-gen-go-aip-resource
+/protoc-gen-go-aip

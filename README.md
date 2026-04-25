@@ -1,7 +1,10 @@
 # protoc-gen-go-aip
 
+[![CI](https://github.com/protoc-contrib/protoc-gen-go-aip/actions/workflows/ci.yml/badge.svg)](https://github.com/protoc-contrib/protoc-gen-go-aip/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/protoc-contrib/protoc-gen-go-aip?include_prereleases)](https://github.com/protoc-contrib/protoc-gen-go-aip/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![protoc](https://img.shields.io/badge/protoc-compatible-blue)](https://protobuf.dev)
 
 A [protoc](https://protobuf.dev) plugin that emits Go helpers for [Google
 AIP](https://aip.dev) resource patterns and List-RPC query handling. It is
@@ -96,6 +99,49 @@ package:
   zero or two-plus message-typed fields are silently skipped to avoid
   emitting half-validated code.
 
+## Installation
+
+```bash
+go install github.com/protoc-contrib/protoc-gen-go-aip/cmd/protoc-gen-go-aip@latest
+```
+
+## Usage
+
+### With buf
+
+Add the plugin to your `buf.gen.yaml`:
+
+```yaml
+version: v2
+plugins:
+  - local: protoc-gen-go-aip
+    out: .
+    opt:
+      - module=github.com/your-org/your-module
+```
+
+Then run:
+
+```bash
+buf generate
+```
+
+### With protoc
+
+```bash
+protoc \
+  --go-aip_out=. \
+  --go-aip_opt=module=github.com/your-org/your-module \
+  -I proto/ \
+  proto/example.proto
+```
+
+## Options
+
+| Option                  | Default | Effect                                                                                                                  |
+| ----------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `allow_unresolved_refs` | `false` | When `true`, `google.api.resource_reference` fields whose target type is not in the compilation unit are skipped silently rather than producing a codegen error. |
+
 ## Migration
 
 Replace prior `protoc-gen-go-aip-resource` and `protoc-gen-go-aip-query`
@@ -103,6 +149,17 @@ plugin entries in `buf.gen.yaml` with a single `protoc-gen-go-aip`
 entry. Output suffixes are unchanged (`_aip.pb.resource.go`,
 `_aip.pb.query.go`), so downstream import paths don't churn.
 
+## Contributing
+
+To set up a development environment with [Nix](https://nixos.org):
+
+```bash
+nix develop
+go test ./...
+```
+
+Or, without Nix, ensure `go`, `protoc`, and `buf` are on your `PATH`.
+
 ## License
 
-MIT — see [LICENSE.md](LICENSE.md).
+[MIT](LICENSE.md)
