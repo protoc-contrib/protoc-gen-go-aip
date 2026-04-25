@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.0...v0.1.1) (2026-04-25)
+
+
+### Bug Fixes
+
+* restructure buf.yaml to publish field options at protoc_contrib/aip/query.proto ([6c99809](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/6c998093c5d558fdceb2ca29955a8205d3d78416))
+
 ## [0.1.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.0.1...v0.1.0) (2026-04-25)
 
 
