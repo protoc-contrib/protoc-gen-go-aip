@@ -146,6 +146,6 @@ jobs:
       - name: Push to Buf Schema Registry
         run: |
           nix develop --command \
-            buf push --label main --label ${{ needs.release.outputs.tag_name }}
+            buf push protoc_contrib/aip --label main --label ${{ needs.release.outputs.tag_name }}
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
