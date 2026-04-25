@@ -5,14 +5,14 @@ version: v2
 # internal/generator/{resource,query}/testpb exist only to exercise the
 # generators.
 modules:
+  # Public field-options module — the only one published to BSR.
   - path: protoc_contrib/aip
     name: buf.build/protoc-contrib/protoc-gen-go-aip
+  # Local-only fixture modules (no `name:` so `buf push` ignores them).
+  # Buf still resolves them for `buf generate` and lint.
   - path: internal/generator/resource/testpb
-    name: buf.build/protoc-contrib/protoc-gen-go-aip-resource-testpb
   - path: internal/generator/query/testpb
-    name: buf.build/protoc-contrib/protoc-gen-go-aip-query-testpb
   - path: internal/generator/fieldmask/testpb
-    name: buf.build/protoc-contrib/protoc-gen-go-aip-fieldmask-testpb
 
 deps:
   - buf.build/googleapis/googleapis
