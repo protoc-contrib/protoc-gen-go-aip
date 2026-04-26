@@ -1,12 +1,11 @@
-// Test fixture for protoc-gen-go-aip-query. The Book resource exercises both
-// AIP-132 orderable fields (title, create_time) and AIP-160 filterable
-// fields (title as TypeString, author as TypeString, read_count as
-// TypeInt, published as TypeBool, genre as TypeEnum, create_time as
-// TypeTimestamp). ListBooksRequest + ListBooksResponse drive the
-// request/response discovery convention.
+// Test fixture for protoc-gen-go-aip query pass. The Book resource is
+// referenced by ListBooksRequest's `filter` and `order_by` fields via
+// `(protoc_contrib.aip.field_reference)`. Filter exercises every
+// supported CEL type (TypeString, TypeInt, TypeBool, TypeEnum,
+// TypeTimestamp); order_by exercises a subset of orderable paths.
 //
-// Regenerate: remove the internal/generator/testpb exclude from buf.yaml,
-// run `buf generate`, restore the exclude.
+// Regenerate: remove the internal/generator/query/testpb exclude from
+// buf.yaml, run `buf generate`, restore the exclude.
 syntax = "proto3";
 
 package testpb;
@@ -15,7 +14,7 @@ import "google/api/resource.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc_contrib/aip/query.proto";
 
-option go_package = "github.com/protoc-contrib/protoc-gen-go-aip-query/internal/generator/testpb;testpb";
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/query/testpb;testpb";
 
 enum Genre {
   GENRE_UNSPECIFIED = 0;
@@ -32,25 +31,25 @@ message Book {
   };
 
   string name = 1;
-  string title = 2 [
-    (protoc_contrib.aip.filterable) = true,
-    (protoc_contrib.aip.orderable) = true
-  ];
-  string author = 3 [(protoc_contrib.aip.filterable) = true];
-  int64 read_count = 4 [(protoc_contrib.aip.filterable) = true];
-  bool published = 5 [(protoc_contrib.aip.filterable) = true];
-  Genre genre = 6 [(protoc_contrib.aip.filterable) = true];
-  google.protobuf.Timestamp create_time = 7 [
-    (protoc_contrib.aip.filterable) = true,
-    (protoc_contrib.aip.orderable) = true
-  ];
+  string title = 2;
+  string author = 3;
+  int64 read_count = 4;
+  bool published = 5;
+  Genre genre = 6;
+  google.protobuf.Timestamp create_time = 7;
 }
 
 message ListBooksRequest {
   int32 page_size = 1;
   string page_token = 2;
-  string filter = 3;
-  string order_by = 4;
+  string filter = 3 [(protoc_contrib.aip.field_reference) = {
+    type: "testpb/Book"
+    fields: ["title", "author", "read_count", "published", "genre", "create_time"]
+  }];
+  string order_by = 4 [(protoc_contrib.aip.field_reference) = {
+    type: "testpb/Book"
+    fields: ["title", "create_time"]
+  }];
 }
 
 message ListBooksResponse {

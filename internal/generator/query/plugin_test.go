@@ -20,15 +20,10 @@ import (
 )
 
 const (
-	testProtoPath  = "internal/generator/testpb/test.proto"
-	testGoldenPath = "testpb/test_aip.pb.query.go"
-	testGoldenWant = "internal/generator/testpb/test_aip.pb.query.go"
-	// The fixture's go_package still embeds the historical
-	// protoc-gen-go-aip-query module prefix; passing it as the plugin's
-	// module= parameter lets protogen strip the prefix and emit at the
-	// expected golden path. The fixture will be regenerated when the
-	// proto stack is regenerated end-to-end.
-	moduleParameter = "module=github.com/protoc-contrib/protoc-gen-go-aip-query"
+	testProtoPath   = "internal/generator/query/testpb/test.proto"
+	testGoldenPath  = "testpb/test_aip.pb.query.go"
+	testGoldenWant  = "internal/generator/query/testpb/test_aip.pb.query.go"
+	moduleParameter = "module=github.com/protoc-contrib/protoc-gen-go-aip"
 )
 
 func TestGenerate_Golden(t *testing.T) {
@@ -56,13 +51,13 @@ func TestGenerate_Golden(t *testing.T) {
 	}
 }
 
-func TestGenerate_SkipsFilesWithoutAnnotatedResources(t *testing.T) {
+func TestGenerate_SkipsFilesWithoutFieldReference(t *testing.T) {
 	fd := syntheticFileDescriptor(t, "plain.proto", func(fd *descriptorpb.FileDescriptorProto) {
-		// A resource with a List request/response pair but no filterable or
-		// orderable fields: generator should emit nothing.
+		// A resource with a List request/response pair but no field_reference
+		// on the request fields: generator should emit nothing.
 		fd.MessageType = []*descriptorpb.DescriptorProto{
-			resourceMessage("Widget", "example/Widget"),
-			listRequestMessage("ListWidgetsRequest"),
+			resourceMessage("Widget", "example/Widget", scalarField("name", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING)),
+			plainListRequest("ListWidgetsRequest"),
 			listResponseMessage("ListWidgetsResponse", ".plain.Widget"),
 		}
 	})
@@ -76,11 +71,13 @@ func TestGenerate_SkipsFilesWithoutAnnotatedResources(t *testing.T) {
 }
 
 func TestGenerate_RejectsUnsupportedFilterableKind(t *testing.T) {
-	// A repeated string field marked filterable — celTypeExpr rejects it.
+	// field_reference exposes a repeated string field on the resource — celTypeExpr rejects it.
 	fd := syntheticFileDescriptor(t, "bad_repeated.proto", func(fd *descriptorpb.FileDescriptorProto) {
 		fd.MessageType = []*descriptorpb.DescriptorProto{
-			resourceMessage("Widget", "example/Widget", filterableField("tags", descriptorpb.FieldDescriptorProto_TYPE_STRING, descriptorpb.FieldDescriptorProto_LABEL_REPEATED)),
-			listRequestMessage("ListWidgetsRequest"),
+			resourceMessage("Widget", "example/Widget",
+				repeatedField("tags", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING),
+			),
+			fieldReferenceListRequest("ListWidgetsRequest", "example/Widget", []string{"tags"}, nil),
 			listResponseMessage("ListWidgetsResponse", ".bad_repeated.Widget"),
 		}
 	})
@@ -95,12 +92,14 @@ func TestGenerate_RejectsUnsupportedFilterableKind(t *testing.T) {
 }
 
 func TestGenerate_RejectsUnsupportedMessageKind(t *testing.T) {
-	// A nested message that isn't Timestamp/Duration — celTypeExpr rejects it.
+	// field_reference exposes a nested non-WKT message field — celTypeExpr rejects it.
 	fd := syntheticFileDescriptor(t, "bad_msg.proto", func(fd *descriptorpb.FileDescriptorProto) {
 		fd.MessageType = []*descriptorpb.DescriptorProto{
 			{Name: proto.String("Inner")},
-			resourceMessage("Widget", "example/Widget", messageField("inner", ".bad_msg.Inner", true)),
-			listRequestMessage("ListWidgetsRequest"),
+			resourceMessage("Widget", "example/Widget",
+				messageField("inner", 1, ".bad_msg.Inner"),
+			),
+			fieldReferenceListRequest("ListWidgetsRequest", "example/Widget", []string{"inner"}, nil),
 			listResponseMessage("ListWidgetsResponse", ".bad_msg.Widget"),
 		}
 	})
@@ -114,19 +113,20 @@ func TestGenerate_RejectsUnsupportedMessageKind(t *testing.T) {
 	}
 }
 
-func TestGenerate_SkipsResourceWithoutListRequest(t *testing.T) {
-	// A resource with filterable fields but no List*Response pointing at it.
-	fd := syntheticFileDescriptor(t, "orphan.proto", func(fd *descriptorpb.FileDescriptorProto) {
+func TestGenerate_ErrorsOnUnknownReferenceType(t *testing.T) {
+	// field_reference names a resource type that no message in the compilation unit declares.
+	fd := syntheticFileDescriptor(t, "unknown_ref.proto", func(fd *descriptorpb.FileDescriptorProto) {
 		fd.MessageType = []*descriptorpb.DescriptorProto{
-			resourceMessage("Widget", "example/Widget", filterableField("name", descriptorpb.FieldDescriptorProto_TYPE_STRING, descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL)),
+			fieldReferenceListRequest("ListWidgetsRequest", "example/Missing", []string{"name"}, nil),
 		}
 	})
-	plugin := newPlugin(t, buildRequest(t, []string{"orphan.proto"}, append(allRegisteredFiles(), fd)))
-	if err := query.Generate(plugin); err != nil {
-		t.Fatalf("Generate: %v", err)
+	plugin := newPlugin(t, buildRequest(t, []string{"unknown_ref.proto"}, append(allRegisteredFiles(), fd)))
+	err := query.Generate(plugin)
+	if err == nil {
+		t.Fatalf("expected error for unresolved type, got nil")
 	}
-	if n := len(plugin.Response().File); n != 0 {
-		t.Fatalf("expected no generated files for orphan resource, got %d", n)
+	if !strings.Contains(err.Error(), "type") {
+		t.Errorf("error = %q, want mention of type", err)
 	}
 }
 
@@ -191,8 +191,27 @@ func resourceMessage(name, resourceType string, fields ...*descriptorpb.FieldDes
 	}
 }
 
-func listRequestMessage(name string) *descriptorpb.DescriptorProto {
-	return &descriptorpb.DescriptorProto{Name: proto.String(name)}
+func plainListRequest(name string) *descriptorpb.DescriptorProto {
+	return &descriptorpb.DescriptorProto{
+		Name: proto.String(name),
+		Field: []*descriptorpb.FieldDescriptorProto{
+			scalarField("filter", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING),
+			scalarField("order_by", 2, descriptorpb.FieldDescriptorProto_TYPE_STRING),
+		},
+	}
+}
+
+func fieldReferenceListRequest(name, refType string, filterFields, orderByFields []string) *descriptorpb.DescriptorProto {
+	fields := []*descriptorpb.FieldDescriptorProto{
+		fieldReferenceField("filter", 1, refType, filterFields),
+	}
+	if len(orderByFields) > 0 {
+		fields = append(fields, fieldReferenceField("order_by", 2, refType, orderByFields))
+	}
+	return &descriptorpb.DescriptorProto{
+		Name:  proto.String(name),
+		Field: fields,
+	}
 }
 
 func listResponseMessage(name, repeatedType string) *descriptorpb.DescriptorProto {
@@ -210,29 +229,45 @@ func listResponseMessage(name, repeatedType string) *descriptorpb.DescriptorProt
 	}
 }
 
-func filterableField(name string, kind descriptorpb.FieldDescriptorProto_Type, label descriptorpb.FieldDescriptorProto_Label) *descriptorpb.FieldDescriptorProto {
+func fieldReferenceField(name string, number int32, refType string, refFields []string) *descriptorpb.FieldDescriptorProto {
 	opts := &descriptorpb.FieldOptions{}
-	proto.SetExtension(opts, aippb.E_Filterable, true)
+	proto.SetExtension(opts, aippb.E_FieldReference, &aippb.FieldReference{
+		Type:   refType,
+		Fields: refFields,
+	})
 	return &descriptorpb.FieldDescriptorProto{
 		Name:    proto.String(name),
-		Number:  proto.Int32(1),
-		Label:   label.Enum(),
-		Type:    kind.Enum(),
+		Number:  proto.Int32(number),
+		Label:   descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+		Type:    descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
 		Options: opts,
 	}
 }
 
-func messageField(name, typeName string, filterable bool) *descriptorpb.FieldDescriptorProto {
-	opts := &descriptorpb.FieldOptions{}
-	if filterable {
-		proto.SetExtension(opts, aippb.E_Filterable, true)
+func scalarField(name string, number int32, kind descriptorpb.FieldDescriptorProto_Type) *descriptorpb.FieldDescriptorProto {
+	return &descriptorpb.FieldDescriptorProto{
+		Name:   proto.String(name),
+		Number: proto.Int32(number),
+		Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+		Type:   kind.Enum(),
 	}
+}
+
+func repeatedField(name string, number int32, kind descriptorpb.FieldDescriptorProto_Type) *descriptorpb.FieldDescriptorProto {
+	return &descriptorpb.FieldDescriptorProto{
+		Name:   proto.String(name),
+		Number: proto.Int32(number),
+		Label:  descriptorpb.FieldDescriptorProto_LABEL_REPEATED.Enum(),
+		Type:   kind.Enum(),
+	}
+}
+
+func messageField(name string, number int32, typeName string) *descriptorpb.FieldDescriptorProto {
 	return &descriptorpb.FieldDescriptorProto{
 		Name:     proto.String(name),
-		Number:   proto.Int32(1),
+		Number:   proto.Int32(number),
 		Label:    descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
 		Type:     descriptorpb.FieldDescriptorProto_TYPE_MESSAGE.Enum(),
 		TypeName: proto.String(typeName),
-		Options:  opts,
 	}
 }

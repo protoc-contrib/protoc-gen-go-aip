@@ -2,7 +2,8 @@
 // files for every input proto: _aip.pb.resource.go (resource-name parsers
 // driven by google.api.resource / google.api.resource_reference) and
 // _aip.pb.query.go (AIP-132/160/158 helpers driven by
-// (protoc_contrib.aip.filterable|orderable) field options).
+// (protoc_contrib.aip.field_reference) on a request's filter /
+// order_by fields).
 //
 // NOTE: this binary's name collides with go.einride.tech/aip's
 // cmd/protoc-gen-go-aip. Install only one — they generate different APIs.

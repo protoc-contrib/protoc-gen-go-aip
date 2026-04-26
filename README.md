@@ -17,8 +17,9 @@ package:
 - **`*_aip.pb.resource.go`** — resource-name parsers and helpers driven
   by `google.api.resource` and `google.api.resource_reference`.
 - **`*_aip.pb.query.go`** — AIP-160 filter / AIP-132 ordering /
-  AIP-158 pagination helpers driven by `(protoc_contrib.aip.filterable)`
-  and `(protoc_contrib.aip.orderable)` field options.
+  AIP-158 pagination helpers driven by the
+  `(protoc_contrib.aip.field_reference)` option on a request's
+  `filter` / `order_by` fields.
 - **`*_aip.pb.fieldmask.go`** — `Validate()` on AIP-134 update-request
   shaped messages, delegating to
   [`go.einride.tech/aip/fieldmask.Validate`](https://pkg.go.dev/go.einride.tech/aip/fieldmask#Validate).
@@ -70,15 +71,29 @@ package:
 
 ### Query pass
 
-- **`ParseFilter()`** — emits a `filtering.Filter` parser using
-  `filtering.Declarations` derived from `(protoc_contrib.aip.filterable)`
-  fields.
-- **`ParseOrderBy()`** — emits an `ordering.OrderBy` parser keyed off
-  `(protoc_contrib.aip.orderable)` fields.
-- **`ParsePageToken()`** — emits a `pagination.PageToken` parser when
-  the `List<Resource>Request` has `page_token` and `page_size`.
-- **`ParseQuery()`** — emits a single helper that runs all three at once
-  and returns a typed `Query` struct.
+Annotate the `filter` and/or `order_by` field of a request with
+`(protoc_contrib.aip.field_reference)`, naming the resource type and
+the fields exposed in that context. The plugin resolves the resource by
+walking every message's `(google.api.resource).type` (cross-file OK),
+infers CEL types from the resource fields, and emits per-request:
+
+- **`<Request>FilterDeclarations`** — `*filtering.Declarations` built
+  from the `fields` of the `filter` field's `field_reference`.
+- **`<Request>OrderByFields`** — `[]string` allow-list from the
+  `fields` of the `order_by` field's `field_reference`.
+- **`ParseFilter()`** — wraps `filtering.ParseFilter` against the
+  request's declarations.
+- **`ParseOrderBy()`** — wraps `ordering.ParseOrderBy` and validates
+  against both the resource message and the allow-list.
+- **`ParsePageToken()`** — emitted whenever the request has
+  `string page_token` + `int32 page_size`.
+- **`ParseQuery()`** — composes whichever of the above the request
+  supports and returns a typed `Query` struct.
+
+`field_reference` carries `type` (AIP resource type) + `fields`
+(subset). Today only `filter` and `order_by` carriers trigger codegen;
+other field names are reserved for future contexts (`update_mask`,
+`read_mask`, …) and silently ignored.
 
 ### Fieldmask pass
 
@@ -116,19 +131,22 @@ message Book {
   };
 
   string name = 1;
-  string title = 2 [
-    (protoc_contrib.aip.filterable) = true,
-    (protoc_contrib.aip.orderable) = true
-  ];
-  string author = 3 [(protoc_contrib.aip.filterable) = true];
-  google.protobuf.Timestamp create_time = 4 [(protoc_contrib.aip.orderable) = true];
+  string title = 2;
+  string author = 3;
+  google.protobuf.Timestamp create_time = 4;
 }
 
 message ListBooksRequest {
   int32 page_size = 1;
   string page_token = 2;
-  string filter = 3;
-  string order_by = 4;
+  string filter = 3 [(protoc_contrib.aip.field_reference) = {
+    type: "library.example.com/Book"
+    fields: ["title", "author"]
+  }];
+  string order_by = 4 [(protoc_contrib.aip.field_reference) = {
+    type: "library.example.com/Book"
+    fields: ["title", "create_time"]
+  }];
 }
 
 message ListBooksResponse {
@@ -160,7 +178,8 @@ func (x *Book)     ParseName() (BookName, error)
 **`books_aip.pb.query.go`** — List-RPC parsers:
 
 ```go
-var BookOrderByFields = []string{"title", "create_time"}
+var ListBooksFilterDeclarations *filtering.Declarations
+var ListBooksOrderByFields = []string{"title", "create_time"}
 
 func (x *ListBooksRequest) ParseFilter()    (filtering.Filter, error)
 func (x *ListBooksRequest) ParseOrderBy()   (ordering.OrderBy, error)
@@ -181,7 +200,7 @@ Call sites stay terse:
 name, err := ParseBookName("books/foo")        // BookName{BookID: "foo"}, nil
 
 q, err := req.ParseQuery()                     // filter + order_by + page_token in one call
-//   q.Filter.CheckedExpr   — CEL-validated against Book's filterable fields
+//   q.Filter.CheckedExpr   — CEL-validated against ListBooksFilterDeclarations
 //   q.OrderBy.Fields       — paths checked against BookOrderByFields
 //   q.PageToken.Offset     — pagination cursor; checksum verifies request stability
 

@@ -9,15 +9,15 @@ import (
 )
 
 var _ = Describe("Generated AIP helpers", func() {
-	Describe("{Resource}FilterDeclarations", func() {
+	Describe("{Request}FilterDeclarations", func() {
 		It("is initialised at package load", func() {
-			Expect(testpb.BookFilterDeclarations).NotTo(BeNil())
+			Expect(testpb.ListBooksFilterDeclarations).NotTo(BeNil())
 		})
 	})
 
-	Describe("{Resource}OrderByFields", func() {
-		It("lists every orderable path in proto declaration order", func() {
-			Expect(testpb.BookOrderByFields).To(Equal([]string{
+	Describe("{Request}OrderByFields", func() {
+		It("lists every orderable path from field_reference, in declaration order", func() {
+			Expect(testpb.ListBooksOrderByFields).To(Equal([]string{
 				"title",
 				"create_time",
 			}))
