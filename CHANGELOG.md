@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.1...v0.1.2) (2026-04-26)
+
+
+### Bug Fixes
+
+* remove {Resource}Columns generation and protoc_contrib.aip.column option ([35790ba](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/35790ba3740203623b9c892ff2c2ced9d7bd357b))
+* replace filterable/orderable annotations with field_reference ([c5457f5](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/c5457f5d800640a9deb918e4113cded7b47c0956))
+
 ## [0.1.1](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.0...v0.1.1) (2026-04-25)
 
 
