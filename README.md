@@ -17,9 +17,8 @@ package:
 - **`*_aip.pb.resource.go`** — resource-name parsers and helpers driven
   by `google.api.resource` and `google.api.resource_reference`.
 - **`*_aip.pb.query.go`** — AIP-160 filter / AIP-132 ordering /
-  AIP-158 pagination helpers driven by `(protoc_contrib.aip.filterable)`,
-  `(protoc_contrib.aip.orderable)`, and `(protoc_contrib.aip.column)`
-  field options.
+  AIP-158 pagination helpers driven by `(protoc_contrib.aip.filterable)`
+  and `(protoc_contrib.aip.orderable)` field options.
 - **`*_aip.pb.fieldmask.go`** — `Validate()` on AIP-134 update-request
   shaped messages, delegating to
   [`go.einride.tech/aip/fieldmask.Validate`](https://pkg.go.dev/go.einride.tech/aip/fieldmask#Validate).
@@ -80,9 +79,6 @@ package:
   the `List<Resource>Request` has `page_token` and `page_size`.
 - **`ParseQuery()`** — emits a single helper that runs all three at once
   and returns a typed `Query` struct.
-- **`<Resource>Columns`** — a `map[string]string` projecting filterable
-  / orderable fields to their backing DB column names, overridable via
-  `(protoc_contrib.aip.column)`.
 
 ### Fieldmask pass
 
@@ -125,10 +121,7 @@ message Book {
     (protoc_contrib.aip.orderable) = true
   ];
   string author = 3 [(protoc_contrib.aip.filterable) = true];
-  google.protobuf.Timestamp create_time = 4 [
-    (protoc_contrib.aip.orderable) = true,
-    (protoc_contrib.aip.column) = "created_at"
-  ];
+  google.protobuf.Timestamp create_time = 4 [(protoc_contrib.aip.orderable) = true];
 }
 
 message ListBooksRequest {
@@ -168,7 +161,6 @@ func (x *Book)     ParseName() (BookName, error)
 
 ```go
 var BookOrderByFields = []string{"title", "create_time"}
-var BookColumns       = map[string]string{"create_time": "created_at"}
 
 func (x *ListBooksRequest) ParseFilter()    (filtering.Filter, error)
 func (x *ListBooksRequest) ParseOrderBy()   (ordering.OrderBy, error)

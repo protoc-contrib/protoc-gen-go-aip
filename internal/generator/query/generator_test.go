@@ -15,14 +15,6 @@ var _ = Describe("Generated AIP helpers", func() {
 		})
 	})
 
-	Describe("{Resource}Columns", func() {
-		It("maps proto field names to DB columns for fields with the column annotation", func() {
-			Expect(testpb.BookColumns).To(Equal(map[string]string{
-				"create_time": "created_at",
-			}))
-		})
-	})
-
 	Describe("{Resource}OrderByFields", func() {
 		It("lists every orderable path in proto declaration order", func() {
 			Expect(testpb.BookOrderByFields).To(Equal([]string{

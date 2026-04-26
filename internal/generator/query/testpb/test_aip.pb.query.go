@@ -55,14 +55,6 @@ func (x *ListBooksRequest) ParseQuery() (Query, error) {
 	}, nil
 }
 
-// BookColumns maps proto field names on Book to their backing DB
-// column names, for fields annotated `(protoc_contrib.aip.column) = "..."`.
-// Fields without the annotation are absent from the map; callers should
-// fall back to the proto field name in that case.
-var BookColumns = map[string]string{
-	"create_time": "created_at",
-}
-
 // BookFilterDeclarations is the AIP-160 CEL declaration set for
 // fields declared `(protoc_contrib.aip.filterable) = true` on Book.
 var BookFilterDeclarations *filtering.Declarations
@@ -96,8 +88,7 @@ func (x *ListBooksRequest) ParseFilter() (filtering.Filter, error) {
 }
 
 // BookOrderByFields lists the AIP orderable paths on Book,
-// in proto declaration order. Use [BookColumns] to resolve a
-// path to its backing DB column name.
+// in proto declaration order.
 var BookOrderByFields = []string{
 	"title",
 	"create_time",

@@ -93,9 +93,6 @@ func generateFile(plugin *protogen.Plugin, f *protogen.File) error {
 		if p.dims() >= 2 {
 			emitParseQuery(g, p)
 		}
-		if cols := collectColumnFields(p.resource); len(cols) > 0 {
-			emitColumns(g, p, cols)
-		}
 		if len(p.filterable) > 0 {
 			if err := emitFilterDeclarations(g, p); err != nil {
 				return fmt.Errorf("%s: %w", p.resource.GoIdent.GoName, err)
@@ -222,41 +219,6 @@ func collectFields(m *protogen.Message, ext protoreflect.ExtensionType) []*proto
 	return out
 }
 
-// collectColumnFields returns the fields of m whose FieldOptions carry a
-// non-empty `(protoc_contrib.aip.column)` annotation, preserving proto
-// declaration order.
-func collectColumnFields(m *protogen.Message) []*protogen.Field {
-	var out []*protogen.Field
-	for _, field := range m.Fields {
-		opts, ok := field.Desc.Options().(*descriptorpb.FieldOptions)
-		if !ok || opts == nil {
-			continue
-		}
-		if !proto.HasExtension(opts, aippb.E_Column) {
-			continue
-		}
-		v, ok := proto.GetExtension(opts, aippb.E_Column).(string)
-		if !ok || v == "" {
-			continue
-		}
-		out = append(out, field)
-	}
-	return out
-}
-
-// columnFor returns the backing DB column name for a field. When the
-// `(protoc_contrib.aip.column)` option is set to a non-empty string, it
-// wins; otherwise the proto field name is used.
-func columnFor(field *protogen.Field) string {
-	opts, ok := field.Desc.Options().(*descriptorpb.FieldOptions)
-	if ok && opts != nil && proto.HasExtension(opts, aippb.E_Column) {
-		if v, ok := proto.GetExtension(opts, aippb.E_Column).(string); ok && v != "" {
-			return v
-		}
-	}
-	return string(field.Desc.Name())
-}
-
 // findListRequest locates the `List{Plural}Request` sibling for a
 // resource by scanning every `List*Response` in the same file for a
 // `repeated {ResourceMessage}` field and flipping the `Response` suffix
@@ -297,35 +259,14 @@ func hasRepeatedOf(container, target *protogen.Message) bool {
 
 // emitOrderByFields emits a package-level `{Resource}OrderByFields` slice
 // listing the AIP orderable paths on the resource, in proto declaration
-// order. ParseOrderBy uses it as the allow-list; callers translating paths
-// to DB columns should consult [`{Resource}Columns`] and fall back to the
-// proto field name when absent.
+// order. ParseOrderBy uses it as the allow-list.
 func emitOrderByFields(g *protogen.GeneratedFile, p listPair) {
 	resName := p.resource.GoIdent.GoName
 	g.P("// ", resName, "OrderByFields lists the AIP orderable paths on ", resName, ",")
-	g.P("// in proto declaration order. Use [", resName, "Columns] to resolve a")
-	g.P("// path to its backing DB column name.")
+	g.P("// in proto declaration order.")
 	g.P("var ", resName, "OrderByFields = []string{")
 	for _, field := range p.orderable {
 		g.P(`	"`, string(field.Desc.Name()), `",`)
-	}
-	g.P("}")
-	g.P()
-}
-
-// emitColumns emits a package-level `{Resource}Columns` map from proto
-// field name to the DB column name supplied via
-// `(protoc_contrib.aip.column) = "..."`. Only fields carrying that
-// annotation appear; callers default missing keys to the proto field name.
-func emitColumns(g *protogen.GeneratedFile, p listPair, fields []*protogen.Field) {
-	resName := p.resource.GoIdent.GoName
-	g.P("// ", resName, "Columns maps proto field names on ", resName, " to their backing DB")
-	g.P("// column names, for fields annotated `(protoc_contrib.aip.column) = \"...\"`.")
-	g.P("// Fields without the annotation are absent from the map; callers should")
-	g.P("// fall back to the proto field name in that case.")
-	g.P("var ", resName, "Columns = map[string]string{")
-	for _, field := range fields {
-		g.P(`	"`, string(field.Desc.Name()), `": "`, columnFor(field), `",`)
 	}
 	g.P("}")
 	g.P()

@@ -42,8 +42,7 @@ message Book {
   Genre genre = 6 [(protoc_contrib.aip.filterable) = true];
   google.protobuf.Timestamp create_time = 7 [
     (protoc_contrib.aip.filterable) = true,
-    (protoc_contrib.aip.orderable) = true,
-    (protoc_contrib.aip.column) = "created_at"
+    (protoc_contrib.aip.orderable) = true
   ];
 }
 

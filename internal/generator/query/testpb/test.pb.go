@@ -299,7 +299,7 @@ var File_internal_generator_testpb_test_proto protoreflect.FileDescriptor
 
 const file_internal_generator_testpb_test_proto_rawDesc = "" +
 	"\n" +
-	"$internal/generator/testpb/test.proto\x12\x06testpb\x1a\x19google/api/resource.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1eprotoc_contrib/aip/query.proto\"\xce\x02\n" +
+	"$internal/generator/testpb/test.proto\x12\x06testpb\x1a\x19google/api/resource.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1eprotoc_contrib/aip/query.proto\"\xc0\x02\n" +
 	"\x04Book\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1e\n" +
 	"\x05title\x18\x02 \x01(\tB\b\x88\xb5\x18\x01\x90\xb5\x18\x01R\x05title\x12\x1c\n" +
@@ -307,9 +307,8 @@ const file_internal_generator_testpb_test_proto_rawDesc = "" +
 	"\n" +
 	"read_count\x18\x04 \x01(\x03B\x04\x90\xb5\x18\x01R\treadCount\x12\"\n" +
 	"\tpublished\x18\x05 \x01(\bB\x04\x90\xb5\x18\x01R\tpublished\x12)\n" +
-	"\x05genre\x18\x06 \x01(\x0e2\r.testpb.GenreB\x04\x90\xb5\x18\x01R\x05genre\x12S\n" +
-	"\vcreate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x16\x88\xb5\x18\x01\x90\xb5\x18\x01\x9a\xb5\x18\n" +
-	"created_atR\n" +
+	"\x05genre\x18\x06 \x01(\x0e2\r.testpb.GenreB\x04\x90\xb5\x18\x01R\x05genre\x12E\n" +
+	"\vcreate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\b\x88\xb5\x18\x01\x90\xb5\x18\x01R\n" +
 	"createTime:+\xeaA(\n" +
 	"\vtestpb/Book\x12\fbooks/{book}*\x05books2\x04book\"\x81\x01\n" +
 	"\x10ListBooksRequest\x12\x1b\n" +

@@ -5,8 +5,8 @@
 // plugin finds the matching `List{Plural}Request` (by inspecting the
 // `repeated {Resource}` field on `List{Plural}Response`) and emits
 // per-request ParseOrderBy / ParseFilter methods plus per-resource
-// package-level vars ({Resource}OrderByFields, {Resource}FilterDeclarations,
-// {Resource}Columns) that the methods reference.
+// package-level vars ({Resource}OrderByFields, {Resource}FilterDeclarations)
+// that the methods reference.
 syntax = "proto3";
 
 package protoc_contrib.aip;
@@ -26,11 +26,4 @@ extend google.protobuf.FieldOptions {
   // `filtering.Declarations` entry with the CEL type inferred from the
   // field's kind into {Resource}FilterDeclarations.
   bool filterable = 50002;
-
-  // Overrides the backing DB column name exposed in the generated
-  // {Resource}Columns map. Only meaningful when the field is also
-  // annotated orderable and/or filterable; otherwise the field is
-  // absent from the map. When unset, callers should fall back to
-  // the proto field name.
-  string column = 50003;
 }
