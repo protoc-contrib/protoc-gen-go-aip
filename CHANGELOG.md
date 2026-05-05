@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.2...v0.1.3) (2026-05-05)
+
+
+### Bug Fixes
+
+* **github:** correct action versions in update.yml ([a2f9925](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/a2f9925d1b11b49de17acfd73ce9a3c4d6ea5c84))
+
 ## [0.1.2](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.1...v0.1.2) (2026-04-26)
 
 
