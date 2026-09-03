@@ -1,14 +1,19 @@
 version: v2
 
-# Single-module workspace. The public field-options module's root is the
-# repo root, so the file ships to BSR as `protoc_contrib/aip/query.proto`
-# — consumers import it by that path. The testpb trees under
-# internal/generator/{resource,query,fieldmask}/testpb are excluded;
-# they exist only to exercise the generators.
+# Workspace with one published module and three fixture modules.
 #
-# To regenerate testpb fixtures: comment out the `excludes` block below,
-# run `buf generate`, and restore the block. (Same workflow as the
-# sibling protoc-contrib plugins.)
+# The public field-options module's root is the repo root, so the file
+# ships to BSR as `protoc_contrib/aip/query.proto` — consumers import it
+# by that path. The testpb trees are excluded from it and declared as
+# modules in their own right, which is what makes `buf generate` work
+# with no config editing:
+#
+#   - each tree is its own import root, so reference.proto can import
+#     "simple/simple.proto" the way its own directory sees it;
+#   - names are scoped per module, so query/ and fieldmask/ may both
+#     declare `package testpb` without colliding.
+#
+# Regenerate fixtures with a plain `buf generate` from the repo root.
 modules:
   - path: .
     name: buf.build/protoc-contrib/protoc-gen-go-aip
@@ -16,6 +21,9 @@ modules:
       - internal/generator/resource/testpb
       - internal/generator/query/testpb
       - internal/generator/fieldmask/testpb
+  - path: internal/generator/resource/testpb
+  - path: internal/generator/query/testpb
+  - path: internal/generator/fieldmask/testpb
 
 deps:
   - buf.build/googleapis/googleapis

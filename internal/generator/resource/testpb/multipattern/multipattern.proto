@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package tests.multipattern;
 
-option go_package = "github.com/protoc-contrib/protoc-gen-go-aip-resource/internal/generator/testpb/multipattern";
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/multipattern";
 
 import "google/api/resource.proto";
 

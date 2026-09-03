@@ -1,18 +1,18 @@
-// Test fixture for protoc-gen-go-aip query pass. The Book resource is
-// referenced by ListBooksRequest's `filter` and `order_by` fields via
-// `(protoc_contrib.aip.field_reference)`. Filter exercises every
-// supported CEL type (TypeString, TypeInt, TypeBool, TypeEnum,
-// TypeTimestamp); order_by exercises a subset of orderable paths.
+// Test fixture for the protoc-gen-go-aip query pass.
 //
-// Regenerate: remove the internal/generator/query/testpb exclude from
-// buf.yaml, run `buf generate`, restore the exclude.
+// The Book resource is derived from ListBooksResponse's repeated field, so
+// no annotation ties the request to it. Book exercises every CEL type the
+// generator supports (string, int, bool, enum, timestamp) plus a field with
+// none — `cover`, a nested message — which must be skipped rather than
+// rejected.
+//
+// Regenerate with `buf generate` from the repo root.
 syntax = "proto3";
 
-package testpb;
+package tests.query;
 
 import "google/api/resource.proto";
 import "google/protobuf/timestamp.proto";
-import "protoc_contrib/aip/query.proto";
 
 option go_package = "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/query/testpb;testpb";
 
@@ -37,22 +37,29 @@ message Book {
   bool published = 5;
   Genre genre = 6;
   google.protobuf.Timestamp create_time = 7;
+  // No CEL type: a nested message the generator must skip.
+  Cover cover = 8;
+  // No CEL type: repeated fields have no total order.
+  repeated string tags = 9;
+}
+
+message Cover {
+  string url = 1;
 }
 
 message ListBooksRequest {
   int32 page_size = 1;
   string page_token = 2;
-  string filter = 3 [(protoc_contrib.aip.field_reference) = {
-    type: "testpb/Book"
-    fields: ["title", "author", "read_count", "published", "genre", "create_time"]
-  }];
-  string order_by = 4 [(protoc_contrib.aip.field_reference) = {
-    type: "testpb/Book"
-    fields: ["title", "create_time"]
-  }];
+  string filter = 3;
+  string order_by = 4;
 }
 
 message ListBooksResponse {
   repeated Book books = 1;
   string next_page_token = 2;
+}
+
+service Library {
+  // The resource for ListBooksRequest is read off this method's response.
+  rpc ListBooks(ListBooksRequest) returns (ListBooksResponse);
 }

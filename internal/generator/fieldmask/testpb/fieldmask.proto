@@ -10,7 +10,7 @@
 // Regenerate with `buf generate` from the repo root.
 syntax = "proto3";
 
-package testpb;
+package tests.fieldmask;
 
 import "google/protobuf/field_mask.proto";
 

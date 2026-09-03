@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package tests.external;
 
-option go_package = "github.com/protoc-contrib/protoc-gen-go-aip-resource/internal/generator/testpb/external";
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/external";
 
 import "google/api/resource.proto";
 
