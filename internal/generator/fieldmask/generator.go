@@ -1,9 +1,8 @@
 // Package fieldmask emits AIP-134 Validate() helpers on request messages
 // that pair a google.protobuf.FieldMask with a single message-typed field
 // (the resource being updated). The generated method delegates to
-// go.einride.tech/aip/fieldmask.Validate, which checks every path resolves
-// to a known field on the target message and accepts "*" only as the sole
-// path.
+// aip.ValidateFieldMask, which checks every path resolves to a known field
+// on the target message and accepts "*" only as the sole path.
 package fieldmask
 
 import (
@@ -17,7 +16,7 @@ import (
 // (`_aip.pb.resource.go`, `_aip.pb.query.go`, `_aip.pb.fieldmask.go`).
 const generatedFilenameSuffix = "_aip.pb.fieldmask.go"
 
-var fieldmaskPackage = protogen.GoImportPath("go.einride.tech/aip/fieldmask")
+var aipPackage = protogen.GoImportPath("github.com/protoc-contrib/aip-go")
 
 // Generate walks every file scheduled for generation and emits a
 // `_aip.pb.fieldmask.go` companion for each file that contains at least
@@ -119,7 +118,7 @@ func emitValidate(g *protogen.GeneratedFile, c candidate) {
 	g.P("// resolve to a field on ", targetType, ". A nil mask is valid (full")
 	g.P(`// replacement); "*" is valid only as the sole path.`)
 	g.P("func (x *", owner, ") Validate() error {")
-	g.P("	return ", fieldmaskPackage.Ident("Validate"), "(x.", maskGo, ", x.", targetGo, ")")
+	g.P("	return ", aipPackage.Ident("ValidateFieldMask"), "(x.", maskGo, ", x.", targetGo, ")")
 	g.P("}")
 	g.P()
 }

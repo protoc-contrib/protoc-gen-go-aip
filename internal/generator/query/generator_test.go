@@ -3,22 +3,27 @@ package query_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.einride.tech/aip/pagination"
+	aip "github.com/protoc-contrib/aip-go"
 
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/query/testpb"
 )
 
 var _ = Describe("Generated AIP helpers", func() {
-	Describe("{Request}FilterDeclarations", func() {
+	Describe("{Request}FilterEnv", func() {
 		It("is initialised at package load", func() {
-			Expect(testpb.ListBooksFilterDeclarations).NotTo(BeNil())
+			Expect(testpb.ListBooksFilterEnv).NotTo(BeNil())
 		})
 	})
 
 	Describe("{Request}OrderByFields", func() {
-		It("lists every orderable path from field_reference, in declaration order", func() {
+		It("lists every orderable field of the resource, in declaration order", func() {
 			Expect(testpb.ListBooksOrderByFields).To(Equal([]string{
+				"name",
 				"title",
+				"author",
+				"read_count",
+				"published",
+				"genre",
 				"create_time",
 			}))
 		})
@@ -50,10 +55,16 @@ var _ = Describe("Generated AIP helpers", func() {
 			Expect(order.Fields[1].Desc).To(BeFalse())
 		})
 
-		It("returns an error prefixed with invalid order_by when a path is not in the allow-list", func() {
-			_, err := (&testpb.ListBooksRequest{OrderBy: "author"}).ParseOrderBy()
-			Expect(err).To(MatchError(ContainSubstring("invalid order_by")))
-		})
+		DescribeTable("rejects a path that is not orderable",
+			func(orderBy string) {
+				_, err := (&testpb.ListBooksRequest{OrderBy: orderBy}).ParseOrderBy()
+				Expect(err).To(MatchError(ContainSubstring("invalid order_by")))
+			},
+			Entry("unknown field", "isbn"),
+			// Fields with no CEL type are not declared orderable.
+			Entry("nested message", "cover"),
+			Entry("repeated field", "tags"),
+		)
 
 		It("returns an error prefixed with invalid order_by on a syntactically invalid order_by", func() {
 			_, err := (&testpb.ListBooksRequest{OrderBy: "title bogus_direction"}).ParseOrderBy()
@@ -62,94 +73,103 @@ var _ = Describe("Generated AIP helpers", func() {
 	})
 
 	Describe("ListBooksRequest.ParseFilter", func() {
-		It("parses empty filter successfully", func() {
-			filter, err := (&testpb.ListBooksRequest{}).ParseFilter()
+		It("returns a nil AST when no filter was provided", func() {
+			ast, err := (&testpb.ListBooksRequest{}).ParseFilter()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(filter).NotTo(BeNil())
+			Expect(ast).To(BeNil())
 		})
 
-		It("parses a string equality filter", func() {
-			filter, err := (&testpb.ListBooksRequest{Filter: `title = "The Go Programming Language"`}).ParseFilter()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(filter.CheckedExpr).NotTo(BeNil())
-		})
+		DescribeTable("compiles a valid CEL expression",
+			func(filter string) {
+				ast, err := (&testpb.ListBooksRequest{Filter: filter}).ParseFilter()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(ast).NotTo(BeNil())
+			},
+			Entry("string equality", `title == "The Go Programming Language"`),
+			Entry("int comparison", "read_count > 100"),
+			Entry("bool", "published"),
+			Entry("enum compares as an int", "genre == 1"),
+			Entry("timestamp comparison", `create_time > timestamp("2024-01-01T00:00:00Z")`),
+			Entry("conjunction", `author == "Kernighan" && read_count > 10`),
+			Entry("disjunction", `author == "Kernighan" || author == "Ritchie"`),
+			Entry("negation", `!published`),
+			Entry("string function", `title.startsWith("The")`),
+		)
 
-		It("parses an int comparison filter", func() {
-			filter, err := (&testpb.ListBooksRequest{Filter: "read_count > 100"}).ParseFilter()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(filter.CheckedExpr).NotTo(BeNil())
-		})
-
-		It("parses a compound filter with AND", func() {
-			filter, err := (&testpb.ListBooksRequest{Filter: `author = "Kernighan" AND read_count > 10`}).ParseFilter()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(filter.CheckedExpr).NotTo(BeNil())
-		})
-
-		It("returns an error prefixed with invalid filter when referencing an undeclared ident", func() {
-			_, err := (&testpb.ListBooksRequest{Filter: `isbn = "9780134190440"`}).ParseFilter()
-			Expect(err).To(MatchError(ContainSubstring("invalid filter")))
-		})
-
-		It("returns an error prefixed with invalid filter on a type mismatch", func() {
-			_, err := (&testpb.ListBooksRequest{Filter: `read_count = "many"`}).ParseFilter()
-			Expect(err).To(MatchError(ContainSubstring("invalid filter")))
-		})
-
-		It("returns an error prefixed with invalid filter on a syntactically invalid filter", func() {
-			_, err := (&testpb.ListBooksRequest{Filter: "title ="}).ParseFilter()
-			Expect(err).To(MatchError(ContainSubstring("invalid filter")))
-		})
+		DescribeTable("rejects an expression the environment cannot compile",
+			func(filter string) {
+				_, err := (&testpb.ListBooksRequest{Filter: filter}).ParseFilter()
+				Expect(err).To(MatchError(ContainSubstring("invalid filter")))
+			},
+			Entry("undeclared ident", `isbn == "9780134190440"`),
+			// A field with no CEL type is not declared, so it is undeclared
+			// to the compiler rather than a special case.
+			Entry("nested message field", `cover == "x"`),
+			Entry("repeated field", `tags == "x"`),
+			Entry("type mismatch", `read_count == "many"`),
+			Entry("syntax error", "read_count >"),
+			// AIP-160 syntax is no longer accepted: this surface is CEL.
+			Entry("AIP-160 equality", `title = "x"`),
+			Entry("AIP-160 conjunction", `title == "x" AND published`),
+			Entry("AIP-160 has", `title:"x"`),
+		)
 	})
 
 	Describe("ListBooksRequest.ParsePageToken", func() {
 		It("returns a zero-offset token with a non-zero checksum on the first page", func() {
-			pt, err := (&testpb.ListBooksRequest{Filter: `title = "x"`}).ParsePageToken()
+			pt, err := (&testpb.ListBooksRequest{Filter: `title == "x"`}).ParsePageToken()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pt.Offset).To(BeZero())
 			Expect(pt.RequestChecksum).NotTo(BeZero())
 		})
 
-		It("round-trips an offset page token via PageToken.Next.String", func() {
-			req := &testpb.ListBooksRequest{Filter: `title = "x"`, PageSize: 50}
+		It("round-trips an offset page token via PageToken.NextOffset", func() {
+			req := &testpb.ListBooksRequest{Filter: `title == "x"`, PageSize: 50}
 			seed, err := req.ParsePageToken()
 			Expect(err).NotTo(HaveOccurred())
 
-			req.PageToken = seed.Next(req).String()
+			encoded, err := seed.NextOffset(req).Encode()
+			Expect(err).NotTo(HaveOccurred())
+
+			req.PageToken = encoded
 			got, err := req.ParsePageToken()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(got.Offset).To(Equal(int64(50)))
 		})
 
 		It("errors when the filter changes between pages", func() {
-			seed, err := (&testpb.ListBooksRequest{Filter: `title = "a"`, PageSize: 10}).ParsePageToken()
+			seed, err := (&testpb.ListBooksRequest{Filter: `title == "a"`, PageSize: 10}).ParsePageToken()
 			Expect(err).NotTo(HaveOccurred())
-			tok := seed.Next(&testpb.ListBooksRequest{PageSize: 10}).String()
-			_, err = (&testpb.ListBooksRequest{Filter: `title = "b"`, PageToken: tok}).ParsePageToken()
-			Expect(err).To(HaveOccurred())
+			encoded, err := seed.NextOffset(&testpb.ListBooksRequest{PageSize: 10}).Encode()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = (&testpb.ListBooksRequest{Filter: `title == "b"`, PageToken: encoded}).ParsePageToken()
+			Expect(err).To(MatchError(aip.ErrChecksumMismatch))
 		})
 	})
 
 	Describe("ListBooksRequest.ParseQuery", func() {
 		It("bundles filter, order_by, and page_token for a first-page request", func() {
 			q, err := (&testpb.ListBooksRequest{
-				Filter:  `title = "x"`,
+				Filter:  `title == "x"`,
 				OrderBy: "title",
 			}).ParseQuery()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(q.Filter.CheckedExpr).NotTo(BeNil())
+			Expect(q.Filter).NotTo(BeNil())
 			Expect(q.OrderBy.Fields).To(HaveLen(1))
-			Expect(q.PageToken).To(BeAssignableToTypeOf(pagination.PageToken{}))
+			Expect(q.PageToken).To(BeAssignableToTypeOf(aip.PageToken{}))
 			Expect(q.PageToken.Offset).To(BeZero())
 			Expect(q.PageToken.RequestChecksum).NotTo(BeZero())
 		})
 
 		It("propagates the page-token error when the token checksum is stale", func() {
-			seed, err := (&testpb.ListBooksRequest{Filter: `title = "a"`, PageSize: 10}).ParsePageToken()
+			seed, err := (&testpb.ListBooksRequest{Filter: `title == "a"`, PageSize: 10}).ParsePageToken()
 			Expect(err).NotTo(HaveOccurred())
-			tok := seed.Next(&testpb.ListBooksRequest{PageSize: 10}).String()
-			_, err = (&testpb.ListBooksRequest{Filter: `title = "b"`, PageToken: tok}).ParseQuery()
-			Expect(err).To(HaveOccurred())
+			encoded, err := seed.NextOffset(&testpb.ListBooksRequest{PageSize: 10}).Encode()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = (&testpb.ListBooksRequest{Filter: `title == "b"`, PageToken: encoded}).ParseQuery()
+			Expect(err).To(MatchError(aip.ErrChecksumMismatch))
 		})
 	})
 })

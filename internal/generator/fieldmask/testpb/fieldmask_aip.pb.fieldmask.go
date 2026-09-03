@@ -4,19 +4,19 @@
 package testpb
 
 import (
-	fieldmask "go.einride.tech/aip/fieldmask"
+	aip_go "github.com/protoc-contrib/aip-go"
 )
 
 // Validate returns an error if UpdateMask contains a path that does not
 // resolve to a field on Book. A nil mask is valid (full
 // replacement); "*" is valid only as the sole path.
 func (x *UpdateBookRequest) Validate() error {
-	return fieldmask.Validate(x.UpdateMask, x.Book)
+	return aip_go.ValidateFieldMask(x.UpdateMask, x.Book)
 }
 
 // Validate returns an error if Mask contains a path that does not
 // resolve to a field on Book. A nil mask is valid (full
 // replacement); "*" is valid only as the sole path.
 func (x *PatchBookRequest) Validate() error {
-	return fieldmask.Validate(x.Mask, x.Target)
+	return aip_go.ValidateFieldMask(x.Mask, x.Target)
 }

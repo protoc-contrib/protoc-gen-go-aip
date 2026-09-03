@@ -16,11 +16,10 @@ import (
 
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/query"
 	_ "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/query/testpb"
-	aippb "github.com/protoc-contrib/protoc-gen-go-aip/protoc_contrib/aip"
 )
 
 const (
-	testProtoPath   = "internal/generator/query/testpb/test.proto"
+	testProtoPath   = "test.proto"
 	testGoldenPath  = "testpb/test_aip.pb.query.go"
 	testGoldenWant  = "internal/generator/query/testpb/test_aip.pb.query.go"
 	moduleParameter = "module=github.com/protoc-contrib/protoc-gen-go-aip"
@@ -51,10 +50,11 @@ func TestGenerate_Golden(t *testing.T) {
 	}
 }
 
-func TestGenerate_SkipsFilesWithoutFieldReference(t *testing.T) {
+func TestGenerate_SkipsFilesWithoutListMethod(t *testing.T) {
 	fd := syntheticFileDescriptor(t, "plain.proto", func(fd *descriptorpb.FileDescriptorProto) {
-		// A resource with a List request/response pair but no field_reference
-		// on the request fields: generator should emit nothing.
+		// A resource with a List request/response pair but no service method
+		// tying them together: nothing identifies the request as a List, so
+		// the generator emits nothing.
 		fd.MessageType = []*descriptorpb.DescriptorProto{
 			resourceMessage("Widget", "example/Widget", scalarField("name", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING)),
 			plainListRequest("ListWidgetsRequest"),
@@ -67,66 +67,6 @@ func TestGenerate_SkipsFilesWithoutFieldReference(t *testing.T) {
 	}
 	if n := len(plugin.Response().File); n != 0 {
 		t.Fatalf("expected no generated files, got %d", n)
-	}
-}
-
-func TestGenerate_RejectsUnsupportedFilterableKind(t *testing.T) {
-	// field_reference exposes a repeated string field on the resource — celTypeExpr rejects it.
-	fd := syntheticFileDescriptor(t, "bad_repeated.proto", func(fd *descriptorpb.FileDescriptorProto) {
-		fd.MessageType = []*descriptorpb.DescriptorProto{
-			resourceMessage("Widget", "example/Widget",
-				repeatedField("tags", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING),
-			),
-			fieldReferenceListRequest("ListWidgetsRequest", "example/Widget", []string{"tags"}, nil),
-			listResponseMessage("ListWidgetsResponse", ".bad_repeated.Widget"),
-		}
-	})
-	plugin := newPlugin(t, buildRequest(t, []string{"bad_repeated.proto"}, append(allRegisteredFiles(), fd)))
-	err := query.Generate(plugin)
-	if err == nil {
-		t.Fatalf("expected error for repeated filterable field, got nil")
-	}
-	if !strings.Contains(err.Error(), "repeated") {
-		t.Errorf("error = %q, want mention of repeated", err)
-	}
-}
-
-func TestGenerate_RejectsUnsupportedMessageKind(t *testing.T) {
-	// field_reference exposes a nested non-WKT message field — celTypeExpr rejects it.
-	fd := syntheticFileDescriptor(t, "bad_msg.proto", func(fd *descriptorpb.FileDescriptorProto) {
-		fd.MessageType = []*descriptorpb.DescriptorProto{
-			{Name: proto.String("Inner")},
-			resourceMessage("Widget", "example/Widget",
-				messageField("inner", 1, ".bad_msg.Inner"),
-			),
-			fieldReferenceListRequest("ListWidgetsRequest", "example/Widget", []string{"inner"}, nil),
-			listResponseMessage("ListWidgetsResponse", ".bad_msg.Widget"),
-		}
-	})
-	plugin := newPlugin(t, buildRequest(t, []string{"bad_msg.proto"}, append(allRegisteredFiles(), fd)))
-	err := query.Generate(plugin)
-	if err == nil {
-		t.Fatalf("expected error for nested message filterable field, got nil")
-	}
-	if !strings.Contains(err.Error(), "nested message") {
-		t.Errorf("error = %q, want mention of nested message", err)
-	}
-}
-
-func TestGenerate_ErrorsOnUnknownReferenceType(t *testing.T) {
-	// field_reference names a resource type that no message in the compilation unit declares.
-	fd := syntheticFileDescriptor(t, "unknown_ref.proto", func(fd *descriptorpb.FileDescriptorProto) {
-		fd.MessageType = []*descriptorpb.DescriptorProto{
-			fieldReferenceListRequest("ListWidgetsRequest", "example/Missing", []string{"name"}, nil),
-		}
-	})
-	plugin := newPlugin(t, buildRequest(t, []string{"unknown_ref.proto"}, append(allRegisteredFiles(), fd)))
-	err := query.Generate(plugin)
-	if err == nil {
-		t.Fatalf("expected error for unresolved type, got nil")
-	}
-	if !strings.Contains(err.Error(), "type") {
-		t.Errorf("error = %q, want mention of type", err)
 	}
 }
 
@@ -168,7 +108,6 @@ func syntheticFileDescriptor(t *testing.T, path string, build func(*descriptorpb
 		Syntax:  proto.String("proto3"),
 		Dependency: []string{
 			"google/api/resource.proto",
-			"protoc_contrib/aip/query.proto",
 		},
 		Options: &descriptorpb.FileOptions{
 			GoPackage: proto.String("example.com/" + pkg + ";" + pkg),
@@ -201,19 +140,6 @@ func plainListRequest(name string) *descriptorpb.DescriptorProto {
 	}
 }
 
-func fieldReferenceListRequest(name, refType string, filterFields, orderByFields []string) *descriptorpb.DescriptorProto {
-	fields := []*descriptorpb.FieldDescriptorProto{
-		fieldReferenceField("filter", 1, refType, filterFields),
-	}
-	if len(orderByFields) > 0 {
-		fields = append(fields, fieldReferenceField("order_by", 2, refType, orderByFields))
-	}
-	return &descriptorpb.DescriptorProto{
-		Name:  proto.String(name),
-		Field: fields,
-	}
-}
-
 func listResponseMessage(name, repeatedType string) *descriptorpb.DescriptorProto {
 	return &descriptorpb.DescriptorProto{
 		Name: proto.String(name),
@@ -226,21 +152,6 @@ func listResponseMessage(name, repeatedType string) *descriptorpb.DescriptorProt
 				TypeName: proto.String(repeatedType),
 			},
 		},
-	}
-}
-
-func fieldReferenceField(name string, number int32, refType string, refFields []string) *descriptorpb.FieldDescriptorProto {
-	opts := &descriptorpb.FieldOptions{}
-	proto.SetExtension(opts, aippb.E_FieldReference, &aippb.FieldReference{
-		Type:   refType,
-		Fields: refFields,
-	})
-	return &descriptorpb.FieldDescriptorProto{
-		Name:    proto.String(name),
-		Number:  proto.Int32(number),
-		Label:   descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
-		Type:    descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
-		Options: opts,
 	}
 }
 

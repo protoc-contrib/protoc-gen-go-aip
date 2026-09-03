@@ -5,7 +5,7 @@
 // (protoc_contrib.aip.field_reference) on a request's filter /
 // order_by fields).
 //
-// NOTE: this binary's name collides with go.einride.tech/aip's
+// NOTE: this binary's name collides with einride/aip-go's
 // cmd/protoc-gen-go-aip. Install only one — they generate different APIs.
 package main
 
