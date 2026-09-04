@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.3...v1.0.0) (2026-09-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* filter expressions are CEL, not AIP-160. `a = 1 AND b` becomes `a == 1 && b`. cel-go rejects the old syntax with a clear parse error rather than misreading it, so stale filters fail loudly.
+
+### Features
+
+* generate against aip-go and cel-go, drop einride and field_reference ([34928f7](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/34928f728446957b1856311c663180c70678ffd9))
+
+
+### Bug Fixes
+
+* **buf:** make fixture regeneration work ([eead33d](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/eead33d3199e5f20c57b9f84ca150f103ebae8c2))
+
 ## [0.1.3](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.2...v0.1.3) (2026-05-05)
 
 
