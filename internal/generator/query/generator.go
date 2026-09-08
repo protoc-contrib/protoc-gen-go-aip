@@ -26,7 +26,7 @@ const generatedFilenameSuffix = "_aip.pb.query.go"
 var (
 	fmtPackage = protogen.GoImportPath("fmt")
 	aipPackage = protogen.GoImportPath("github.com/protoc-contrib/aip-go")
-	celPackage = protogen.GoImportPath("github.com/google/cel-go/cel")
+	celPackage = protogen.GoImportPath("cel.dev/cel-go/cel")
 )
 
 // Generate walks every file scheduled for generation and emits a
