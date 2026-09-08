@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.0.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.3...v1.0.0) (2026-09-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* buf.build/protoc-contrib/protoc-gen-go-aip no longer publishes any protos. Remove the dep and the `import "protoc_contrib/aip/query.proto"` from consuming modules; the (protoc_contrib.aip.field_reference) annotation can be deleted outright.
+* filter expressions are CEL, not AIP-160. `a = 1 AND b` becomes `a == 1 && b`. cel-go rejects the old syntax with a clear parse error rather than misreading it, so stale filters fail loudly.
+
+### Features
+
+* emit cel.dev/cel-go, drop the unused protoc_contrib/aip module ([#37](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/37)) ([b608e69](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/b608e69724f5e719879e8f4eb38bcb6e80ff7126))
+* generate against aip-go and cel-go, drop einride and field_reference ([34928f7](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/34928f728446957b1856311c663180c70678ffd9))
+
+
+### Bug Fixes
+
+* **buf:** make fixture regeneration work ([eead33d](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/eead33d3199e5f20c57b9f84ca150f103ebae8c2))
+
 ## [0.1.3](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.2...v0.1.3) (2026-05-05)
 
 
