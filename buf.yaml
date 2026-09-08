@@ -1,12 +1,12 @@
 version: v2
 
-# Workspace with one published module and three fixture modules.
+# Workspace of three fixture modules.
 #
-# The public field-options module's root is the repo root, so the file
-# ships to BSR as `protoc_contrib/aip/query.proto` — consumers import it
-# by that path. The testpb trees are excluded from it and declared as
-# modules in their own right, which is what makes `buf generate` work
-# with no config editing:
+# The plugin publishes no protos of its own: both passes derive everything
+# from google.api annotations and message shape, so there are no custom
+# field options for a consumer to import. Each fixture tree is declared as
+# a module in its own right, which is what makes `buf generate` work with
+# no config editing:
 #
 #   - each tree is its own import root, so reference.proto can import
 #     "simple/simple.proto" the way its own directory sees it;
@@ -15,12 +15,6 @@ version: v2
 #
 # Regenerate fixtures with a plain `buf generate` from the repo root.
 modules:
-  - path: .
-    name: buf.build/protoc-contrib/protoc-gen-go-aip
-    excludes:
-      - internal/generator/resource/testpb
-      - internal/generator/query/testpb
-      - internal/generator/fieldmask/testpb
   - path: internal/generator/resource/testpb
   - path: internal/generator/query/testpb
   - path: internal/generator/fieldmask/testpb

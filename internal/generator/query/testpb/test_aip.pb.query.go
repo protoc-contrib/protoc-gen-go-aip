@@ -4,8 +4,8 @@
 package testpb
 
 import (
+	cel "cel.dev/cel-go/cel"
 	fmt "fmt"
-	cel "github.com/google/cel-go/cel"
 	aip_go "github.com/protoc-contrib/aip-go"
 )
 
