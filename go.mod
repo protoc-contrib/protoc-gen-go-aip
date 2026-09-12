@@ -6,7 +6,7 @@ require (
 	cel.dev/cel-go v0.32.0
 	github.com/google/uuid v1.6.0
 	github.com/iancoleman/strcase v0.3.0
-	github.com/onsi/ginkgo/v2 v2.32.1
+	github.com/onsi/ginkgo/v2 v2.32.2
 	github.com/onsi/gomega v1.43.0
 	github.com/protoc-contrib/aip-go v0.0.0-20260903102901-ba65222135d0
 	google.golang.org/genproto/googleapis/api v0.0.0-20260831171406-18b4a7587f8a
