@@ -6,53 +6,7 @@ package testpb
 import (
 	cel "cel.dev/cel-go/cel"
 	fmt "fmt"
-	aip_go "github.com/protoc-contrib/aip-go"
 )
-
-// Query bundles the parsed AIP dimensions for a List request.
-// A field is the zero value when the corresponding input was empty
-// on the inbound request, or when the request does not support that
-// dimension.
-type Query struct {
-	Filter    *cel.Ast
-	OrderBy   aip_go.OrderBy
-	PageToken aip_go.PageToken
-}
-
-// OrderByPaths returns the field paths from Query.OrderBy in their
-// original order, suitable for building a fieldmaskpb.FieldMask or
-// driving projection logic.
-func (q Query) OrderByPaths() []string {
-	paths := make([]string, len(q.OrderBy.Fields))
-	for i, field := range q.OrderBy.Fields {
-		paths[i] = field.Path
-	}
-	return paths
-}
-
-// ParseQuery parses every AIP dimension supported by ListBooksRequest,
-// applying the same validation as the per-dimension parsers. On
-// error the first failing dimension's wrapped error is returned
-// verbatim; map to codes.InvalidArgument at the RPC boundary.
-func (x *ListBooksRequest) ParseQuery() (Query, error) {
-	filter, err := x.ParseFilter()
-	if err != nil {
-		return Query{}, err
-	}
-	order, err := x.ParseOrderBy()
-	if err != nil {
-		return Query{}, err
-	}
-	pageToken, err := x.ParsePageToken()
-	if err != nil {
-		return Query{}, err
-	}
-	return Query{
-		Filter:    filter,
-		OrderBy:   order,
-		PageToken: pageToken,
-	}, nil
-}
 
 // ListBooksFilterEnv is the CEL environment used to compile `filter`
 // expressions on ListBooksRequest. It declares every field of
@@ -89,47 +43,4 @@ func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error) {
 		return nil, fmt.Errorf("invalid filter: %w", err)
 	}
 	return ast, nil
-}
-
-// ListBooksOrderByFields lists the AIP orderable paths on ListBooksRequest,
-// in declaration order.
-var ListBooksOrderByFields = []string{
-	"name",
-	"title",
-	"author",
-	"read_count",
-	"published",
-	"genre",
-	"create_time",
-}
-
-// ParseOrderBy parses the AIP-132 `order_by` string on ListBooksRequest.
-// Rejects paths not in [ListBooksOrderByFields]. The returned error
-// is suitable for a connect InvalidArgument response; on success the
-// caller receives the parsed [aip_go.OrderBy], ready to translate
-// into an ORDER BY clause.
-func (x *ListBooksRequest) ParseOrderBy() (aip_go.OrderBy, error) {
-	order, err := aip_go.ParseOrderBy(x)
-	if err != nil {
-		return aip_go.OrderBy{}, fmt.Errorf("invalid order_by: %w", err)
-	}
-	if err := order.ValidateForMessage(&Book{}); err != nil {
-		return aip_go.OrderBy{}, fmt.Errorf("invalid order_by: %w", err)
-	}
-	if err := order.ValidateForPaths(ListBooksOrderByFields...); err != nil {
-		return aip_go.OrderBy{}, fmt.Errorf("invalid order_by: %w", err)
-	}
-	return order, nil
-}
-
-// ParsePageToken decodes the AIP-158 offset `page_token` on ListBooksRequest
-// and verifies its checksum against the current request, delegating to
-// [aip_go.ParsePageToken]. On the first page (page_token == "") it
-// returns a zero-offset [aip_go.PageToken] carrying the current checksum.
-func (x *ListBooksRequest) ParsePageToken() (aip_go.PageToken, error) {
-	pageToken, err := aip_go.ParsePageToken(x)
-	if err != nil {
-		return aip_go.PageToken{}, fmt.Errorf("invalid page_token: %w", err)
-	}
-	return pageToken, nil
 }
