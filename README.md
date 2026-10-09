@@ -16,13 +16,12 @@ package:
 
 - **`*_aip.pb.resource.go`** — resource-name parsers and helpers driven
   by `google.api.resource` and `google.api.resource_reference`.
-- **`*_aip.pb.query.go`** — AIP-160 filter / AIP-132 ordering /
-  AIP-158 pagination helpers driven by the
-  `(protoc_contrib.aip.field_reference)` option on a request's
-  `filter` / `order_by` fields.
+- **`*_aip.pb.query.go`** — AIP-160 CEL filter helpers on List requests
+  that carry a `filter` field. The resource is read off the List method's
+  response, so nothing needs annotating.
 - **`*_aip.pb.fieldmask.go`** — `Validate()` on AIP-134 update-request
   shaped messages, delegating to
-  [`go.einride.tech/aip/fieldmask.Validate`](https://pkg.go.dev/go.einride.tech/aip/fieldmask#Validate).
+  [`aip-go`'s `ValidateFieldMask`](https://pkg.go.dev/github.com/protoc-contrib/aip-go#ValidateFieldMask).
 
 > **⚠ Binary-name collision.** This plugin's binary is `protoc-gen-go-aip`,
 > the same name used by the upstream einride plugin under
@@ -71,29 +70,25 @@ package:
 
 ### Query pass
 
-Annotate the `filter` and/or `order_by` field of a request with
-`(protoc_contrib.aip.field_reference)`, naming the resource type and
-the fields exposed in that context. The plugin resolves the resource by
-walking every message's `(google.api.resource).type` (cross-file OK),
-infers CEL types from the resource fields, and emits per-request:
+A request is a List request when a service method takes it and returns a
+message with a single repeated message field; that field's type is the
+resource. For every List request with a `string filter` field, the plugin
+emits:
 
-- **`<Request>FilterDeclarations`** — `*filtering.Declarations` built
-  from the `fields` of the `filter` field's `field_reference`.
-- **`<Request>OrderByFields`** — `[]string` allow-list from the
-  `fields` of the `order_by` field's `field_reference`.
-- **`ParseFilter()`** — wraps `filtering.ParseFilter` against the
-  request's declarations.
-- **`ParseOrderBy()`** — wraps `ordering.ParseOrderBy` and validates
-  against both the resource message and the allow-list.
-- **`ParsePageToken()`** — emitted whenever the request has
-  `string page_token` + `int32 page_size`.
-- **`ParseQuery()`** — composes whichever of the above the request
-  supports and returns a typed `Query` struct.
+- **`<Request>FilterEnv`** — a `*cel.Env` declaring every resource field
+  that has a CEL type (strings, numbers, bools, enums as ints,
+  `Timestamp`, `Duration`). Nested messages, repeated fields and maps are
+  skipped.
+- **`ParseFilter()`** — compiles the `filter` expression against that
+  environment and returns the checked `*cel.Ast`, or `(nil, nil)` when
+  the filter is empty. Pass the AST to a query layer such as
+  [`pgxcel`](https://github.com/pgx-contrib/pgxcel), whose column map
+  decides which fields a client may actually filter by.
 
-`field_reference` carries `type` (AIP resource type) + `fields`
-(subset). Today only `filter` and `order_by` carriers trigger codegen;
-other field names are reserved for future contexts (`update_mask`,
-`read_mask`, …) and silently ignored.
+Ordering (AIP-132) and page tokens (AIP-158) are not generated: both only
+make sense against the column map, ordering and SQL that actually run,
+which the `.proto` can't see, so they belong to the query layer.
+`protoc-gen-rust-aip` generates nothing for them either.
 
 ### Fieldmask pass
 
@@ -102,7 +97,7 @@ other field names are reserved for future contexts (`update_mask`,
   message-typed field (the AIP-134 update-request shape, e.g.
   `UpdateBookRequest { Book book = 1; FieldMask update_mask = 2; }`),
   emits a `Validate()` method that delegates to
-  `fieldmask.Validate(mask, target)`. A nil mask is accepted as full
+  `aip_go.ValidateFieldMask(mask, target)`. A nil mask is accepted as full
   replacement; `"*"` is accepted only as the sole path; every other path
   must resolve to a field on the target message. Detection is purely
   structural — the rule applies regardless of whether the request is
@@ -122,7 +117,6 @@ package books.v1;
 import "google/api/resource.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
-import "protoc_contrib/aip/query.proto";
 
 message Book {
   option (google.api.resource) = {
@@ -139,14 +133,7 @@ message Book {
 message ListBooksRequest {
   int32 page_size = 1;
   string page_token = 2;
-  string filter = 3 [(protoc_contrib.aip.field_reference) = {
-    type: "library.example.com/Book"
-    fields: ["title", "author"]
-  }];
-  string order_by = 4 [(protoc_contrib.aip.field_reference) = {
-    type: "library.example.com/Book"
-    fields: ["title", "create_time"]
-  }];
+  string filter = 3;
 }
 
 message ListBooksResponse {
@@ -157,6 +144,11 @@ message ListBooksResponse {
 message UpdateBookRequest {
   Book book = 1;
   google.protobuf.FieldMask update_mask = 2;
+}
+
+service Library {
+  // ListBooksResponse's repeated Book makes this the List method for Book.
+  rpc ListBooks(ListBooksRequest) returns (ListBooksResponse);
 }
 ```
 
@@ -175,22 +167,19 @@ func (n BookName)  Validate() error
 func (x *Book)     ParseName() (BookName, error)
 ```
 
-**`books_aip.pb.query.go`** — List-RPC parsers:
+**`books_aip.pb.query.go`** — CEL filter parser:
 
 ```go
-var ListBooksFilterDeclarations *filtering.Declarations
-var ListBooksOrderByFields = []string{"title", "create_time"}
+// Declares name, title, author and create_time.
+var ListBooksFilterEnv *cel.Env
 
-func (x *ListBooksRequest) ParseFilter()    (filtering.Filter, error)
-func (x *ListBooksRequest) ParseOrderBy()   (ordering.OrderBy, error)
-func (x *ListBooksRequest) ParsePageToken() (pagination.PageToken, error)
-func (x *ListBooksRequest) ParseQuery()     (Query, error)
+func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error)
 ```
 
 **`books_aip.pb.fieldmask.go`** — update-mask validator:
 
 ```go
-// Validate delegates to fieldmask.Validate(x.UpdateMask, x.Book).
+// Validate delegates to aip_go.ValidateFieldMask(x.UpdateMask, x.Book).
 func (x *UpdateBookRequest) Validate() error
 ```
 
@@ -199,10 +188,8 @@ Call sites stay terse:
 ```go
 name, err := ParseBookName("books/foo")        // BookName{BookID: "foo"}, nil
 
-q, err := req.ParseQuery()                     // filter + order_by + page_token in one call
-//   q.Filter.CheckedExpr   — CEL-validated against ListBooksFilterDeclarations
-//   q.OrderBy.Fields       — paths checked against BookOrderByFields
-//   q.PageToken.Offset     — pagination cursor; checksum verifies request stability
+filter, err := req.ParseFilter()               // *cel.Ast checked against ListBooksFilterEnv; nil when empty
+where, args, err := pgxcel.Transpile(filter, pgxcel.WithColumns(columns))
 
 if err := updateReq.Validate(); err != nil {   // update_mask references a non-Book field
     return status.Error(codes.InvalidArgument, err.Error())

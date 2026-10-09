@@ -1,5 +1,11 @@
-// Package generator emits ordering (AIP-132), pagination (AIP-158) and CEL
-// filtering helpers on List request messages.
+// Package query emits CEL filtering helpers (AIP-160) on List request
+// messages: a `{Request}FilterEnv` and a `ParseFilter` method.
+//
+// Ordering (AIP-132) and page tokens (AIP-158) are deliberately not
+// generated. Both are only meaningful against the column map, ordering and
+// SQL that actually run, which the .proto cannot see, so they belong to the
+// query layer. protoc-gen-rust-aip generates nothing for them either. See
+// https://github.com/protoc-contrib/protoc-gen-go-aip/issues/45.
 //
 // A request is a List request when a service method takes it and returns a
 // message with a single repeated message field; that field's type is the
@@ -25,13 +31,12 @@ const generatedFilenameSuffix = "_aip.pb.query.go"
 
 var (
 	fmtPackage = protogen.GoImportPath("fmt")
-	aipPackage = protogen.GoImportPath("github.com/protoc-contrib/aip-go")
 	celPackage = protogen.GoImportPath("cel.dev/cel-go/cel")
 )
 
 // Generate walks every file scheduled for generation and emits a
 // `_aip.pb.query.go` companion for each file containing at least one
-// List request carrying a `filter` or `order_by` field.
+// List request carrying a `filter` field.
 func Generate(plugin *protogen.Plugin) error {
 	for _, f := range plugin.Files {
 		if !f.Generate {
@@ -71,37 +76,18 @@ func generateFile(plugin *protogen.Plugin, f *protogen.File) error {
 	g.P("package ", f.GoPackageName)
 	g.P()
 
-	if anyQuery(requests) {
-		filter, orderBy, pageToken := queryFields(requests)
-		emitQueryType(g, filter, orderBy, pageToken)
-	}
-
 	for _, r := range requests {
-		if r.dims() >= 2 {
-			emitParseQuery(g, r)
+		if err := emitFilterDeclarations(g, r); err != nil {
+			return fmt.Errorf("%s: %w", r.request.GoIdent.GoName, err)
 		}
-		if r.filter != nil {
-			if err := emitFilterDeclarations(g, r); err != nil {
-				return fmt.Errorf("%s: %w", r.request.GoIdent.GoName, err)
-			}
-			emitParseFilter(g, r)
-		}
-		if r.orderBy != nil {
-			emitOrderByFields(g, r)
-			emitParseOrderBy(g, r)
-		}
-		if r.hasPageToken {
-			emitParsePageToken(g, r)
-		}
+		emitParseFilter(g, r)
 	}
 	return nil
 }
 
 type requestInfo struct {
-	request      *protogen.Message
-	filter       *filterAnalysis
-	orderBy      *orderByAnalysis
-	hasPageToken bool
+	request *protogen.Message
+	filter  *filterAnalysis
 }
 
 type filterAnalysis struct {
@@ -109,71 +95,13 @@ type filterAnalysis struct {
 	fields   []*protogen.Field
 }
 
-type orderByAnalysis struct {
-	resource *protogen.Message
-	paths    []string
-}
-
-// dims counts how many of {filter, order_by, page_token} this request
-// supports. ParseQuery is emitted only when >= 2.
-func (r requestInfo) dims() int {
-	n := 0
-	if r.filter != nil {
-		n++
-	}
-	if r.orderBy != nil {
-		n++
-	}
-	if r.hasPageToken {
-		n++
-	}
-	return n
-}
-
-// anyQuery reports whether any request has at least two of
-// {filter, order_by, page_token} — the threshold for emitting a Query
-// bundle and its ParseQuery method.
-func anyQuery(requests []requestInfo) bool {
-	for _, r := range requests {
-		if r.dims() >= 2 {
-			return true
-		}
-	}
-	return false
-}
-
-// queryFields unions the dimensions present across all requests so the
-// file-level Query type contains every field any ParseQuery needs to
-// populate. Fields absent from a given request are left zero by that
-// request's ParseQuery.
-func queryFields(requests []requestInfo) (filter, orderBy, pageToken bool) {
-	for _, r := range requests {
-		if r.dims() < 2 {
-			continue
-		}
-		if r.filter != nil {
-			filter = true
-		}
-		if r.orderBy != nil {
-			orderBy = true
-		}
-		if r.hasPageToken {
-			pageToken = true
-		}
-	}
-	return
-}
-
-// analyzeRequest inspects req for a `filter`
-// or `order_by` field and structural pagination. Returns nil when
-// neither dimension is annotated; pagination alone is not enough to opt
-// in.
-// analyzeRequest derives the queryable surface of req from resource — the
-// message the corresponding List method returns.
+// analyzeRequest derives the filterable surface of req from resource — the
+// message the corresponding List method returns. It returns nil when req has
+// no `filter` string field or the resource has no field with a CEL type.
 //
 // Every resource field that maps to a CEL type is declared; there is no
-// per-request allow-list. The gate on what a client may actually filter or
-// sort by is the AIP-path to DB-column map handed to the query layer, which
+// per-request allow-list. The gate on what a client may actually filter by
+// is the AIP-path to DB-column map handed to the query layer, which
 // is fail-closed and lives next to the schema that knows which columns exist
 // and which are indexed. A second allow-list in the .proto would only be a
 // copy of it, free to drift.
@@ -181,41 +109,23 @@ func analyzeRequest(req, resource *protogen.Message) (*requestInfo, error) {
 	if resource == nil {
 		return nil, nil
 	}
-	info := &requestInfo{request: req}
 	for _, field := range req.Fields {
-		if !isQueryStringField(field) {
+		if !isQueryStringField(field) || field.Desc.Name() != "filter" {
 			continue
 		}
-		switch string(field.Desc.Name()) {
-		case "filter":
-			fields, err := queryableFields(resource)
-			if err != nil {
-				return nil, fmt.Errorf("filter: %w", err)
-			}
-			if len(fields) == 0 {
-				continue
-			}
-			info.filter = &filterAnalysis{resource: resource, fields: fields}
-		case "order_by":
-			fields, err := queryableFields(resource)
-			if err != nil {
-				return nil, fmt.Errorf("order_by: %w", err)
-			}
-			if len(fields) == 0 {
-				continue
-			}
-			paths := make([]string, 0, len(fields))
-			for _, f := range fields {
-				paths = append(paths, string(f.Desc.Name()))
-			}
-			info.orderBy = &orderByAnalysis{resource: resource, paths: paths}
+		fields, err := queryableFields(resource)
+		if err != nil {
+			return nil, fmt.Errorf("filter: %w", err)
 		}
+		if len(fields) == 0 {
+			return nil, nil
+		}
+		return &requestInfo{
+			request: req,
+			filter:  &filterAnalysis{resource: resource, fields: fields},
+		}, nil
 	}
-	if info.filter == nil && info.orderBy == nil {
-		return nil, nil
-	}
-	info.hasPageToken = hasPaginationFields(req)
-	return info, nil
+	return nil, nil
 }
 
 // queryableFields returns the fields of resource that have a CEL type, in
@@ -277,28 +187,6 @@ func isQueryStringField(field *protogen.Field) bool {
 	return field.Desc.Kind() == protoreflect.StringKind && !field.Desc.IsList()
 }
 
-// hasPaginationFields reports whether req satisfies
-// aip.PageRequest structurally — a `string
-// page_token` field and an `int32 page_size` field. Generated
-// messages of such requests pick up the interface automatically,
-// so pagination.ParsePageToken accepts them without further ceremony.
-func hasPaginationFields(req *protogen.Message) bool {
-	var hasToken, hasSize bool
-	for _, field := range req.Fields {
-		switch string(field.Desc.Name()) {
-		case "page_token":
-			if field.Desc.Kind() == protoreflect.StringKind && !field.Desc.IsList() {
-				hasToken = true
-			}
-		case "page_size":
-			if field.Desc.Kind() == protoreflect.Int32Kind && !field.Desc.IsList() {
-				hasSize = true
-			}
-		}
-	}
-	return hasToken && hasSize
-}
-
 // prefixOf strips the conventional `Request` suffix to produce the
 // per-request identifier prefix (e.g. `ListBooksRequest` →
 // `ListBooks`). Falls back to the full Go name when absent.
@@ -348,21 +236,6 @@ func emitFilterDeclarations(g *protogen.GeneratedFile, r requestInfo) error {
 	return nil
 }
 
-// emitOrderByFields emits a package-level `{Request}OrderByFields` slice
-// listing the AIP orderable paths for the request, in declaration order.
-// ParseOrderBy uses it as the allow-list.
-func emitOrderByFields(g *protogen.GeneratedFile, r requestInfo) {
-	prefix := prefixOf(r.request)
-	g.P("// ", prefix, "OrderByFields lists the AIP orderable paths on ", r.request.GoIdent.GoName, ",")
-	g.P("// in declaration order.")
-	g.P("var ", prefix, "OrderByFields = []string{")
-	for _, p := range r.orderBy.paths {
-		g.P(`	"`, p, `",`)
-	}
-	g.P("}")
-	g.P()
-}
-
 func emitParseFilter(g *protogen.GeneratedFile, r requestInfo) {
 	reqName := r.request.GoIdent.GoName
 	prefix := prefixOf(r.request)
@@ -384,144 +257,12 @@ func emitParseFilter(g *protogen.GeneratedFile, r requestInfo) {
 	g.P()
 }
 
-func emitParseOrderBy(g *protogen.GeneratedFile, r requestInfo) {
-	reqName := r.request.GoIdent.GoName
-	prefix := prefixOf(r.request)
-	resIdent := r.orderBy.resource.GoIdent
-
-	g.P("// ParseOrderBy parses the AIP-132 `order_by` string on ", reqName, ".")
-	g.P("// Rejects paths not in [", prefix, "OrderByFields]. The returned error")
-	g.P("// is suitable for a connect InvalidArgument response; on success the")
-	g.P("// caller receives the parsed [", aipPackage.Ident("OrderBy"), "], ready to translate")
-	g.P("// into an ORDER BY clause.")
-	g.P("func (x *", reqName, ") ParseOrderBy() (", aipPackage.Ident("OrderBy"), ", error) {")
-	g.P("	order, err := ", aipPackage.Ident("ParseOrderBy"), "(x)")
-	g.P("	if err != nil {")
-	g.P(`		return `, aipPackage.Ident("OrderBy"), `{}, `, fmtPackage.Ident("Errorf"), `("invalid order_by: %w", err)`)
-	g.P("	}")
-	g.P("	if err := order.ValidateForMessage(&", resIdent, "{}); err != nil {")
-	g.P(`		return `, aipPackage.Ident("OrderBy"), `{}, `, fmtPackage.Ident("Errorf"), `("invalid order_by: %w", err)`)
-	g.P("	}")
-	g.P("	if err := order.ValidateForPaths(", prefix, "OrderByFields...); err != nil {")
-	g.P(`		return `, aipPackage.Ident("OrderBy"), `{}, `, fmtPackage.Ident("Errorf"), `("invalid order_by: %w", err)`)
-	g.P("	}")
-	g.P("	return order, nil")
-	g.P("}")
-	g.P()
-}
-
-// emitQueryType emits a single package-level `Query` struct bundling the
-// parsed dimensions a ParseQuery method returns. Declared once per
-// generated file; the field set is the union across all requests that have
-// at least two of {filter, order_by, page_token}. Dimensions a given
-// request does not support are left zero by that request's ParseQuery.
-func emitQueryType(g *protogen.GeneratedFile, filter, orderBy, pageToken bool) {
-	g.P("// Query bundles the parsed AIP dimensions for a List request.")
-	g.P("// A field is the zero value when the corresponding input was empty")
-	g.P("// on the inbound request, or when the request does not support that")
-	g.P("// dimension.")
-	g.P("type Query struct {")
-	if filter {
-		g.P("	Filter    *", celPackage.Ident("Ast"))
-	}
-	if orderBy {
-		g.P("	OrderBy   ", aipPackage.Ident("OrderBy"))
-	}
-	if pageToken {
-		g.P("	PageToken ", aipPackage.Ident("PageToken"))
-	}
-	g.P("}")
-	g.P()
-
-	if orderBy {
-		g.P("// OrderByPaths returns the field paths from Query.OrderBy in their")
-		g.P("// original order, suitable for building a fieldmaskpb.FieldMask or")
-		g.P("// driving projection logic.")
-		g.P("func (q Query) OrderByPaths() []string {")
-		g.P("	paths := make([]string, len(q.OrderBy.Fields))")
-		g.P("	for i, field := range q.OrderBy.Fields {")
-		g.P("		paths[i] = field.Path")
-		g.P("	}")
-		g.P("	return paths")
-		g.P("}")
-		g.P()
-	}
-}
-
-// emitParseQuery emits a ParseQuery method that composes whichever of
-// ParseFilter, ParseOrderBy, and ParsePageToken the request supports.
-// The first failing dimension's error is returned verbatim, preserving
-// its "invalid {dimension}" prefix for the caller to log or map.
-func emitParseQuery(g *protogen.GeneratedFile, r requestInfo) {
-	reqName := r.request.GoIdent.GoName
-	hasFilter := r.filter != nil
-	hasOrder := r.orderBy != nil
-	hasToken := r.hasPageToken
-
-	g.P("// ParseQuery parses every AIP dimension supported by ", reqName, ",")
-	g.P("// applying the same validation as the per-dimension parsers. On")
-	g.P("// error the first failing dimension's wrapped error is returned")
-	g.P("// verbatim; map to codes.InvalidArgument at the RPC boundary.")
-	g.P("func (x *", reqName, ") ParseQuery() (Query, error) {")
-	if hasFilter {
-		g.P("	filter, err := x.ParseFilter()")
-		g.P("	if err != nil {")
-		g.P("		return Query{}, err")
-		g.P("	}")
-	}
-	if hasOrder {
-		g.P("	order, err := x.ParseOrderBy()")
-		g.P("	if err != nil {")
-		g.P("		return Query{}, err")
-		g.P("	}")
-	}
-	if hasToken {
-		g.P("	pageToken, err := x.ParsePageToken()")
-		g.P("	if err != nil {")
-		g.P("		return Query{}, err")
-		g.P("	}")
-	}
-	g.P("	return Query{")
-	if hasFilter {
-		g.P("		Filter:    filter,")
-	}
-	if hasOrder {
-		g.P("		OrderBy:   order,")
-	}
-	if hasToken {
-		g.P("		PageToken: pageToken,")
-	}
-	g.P("	}, nil")
-	g.P("}")
-	g.P()
-}
-
-// emitParsePageToken emits a thin forwarder onto pagination.ParsePageToken
-// so callers get the same req.ParseXxx() ergonomic as ParseFilter /
-// ParseOrderBy.
-func emitParsePageToken(g *protogen.GeneratedFile, r requestInfo) {
-	reqName := r.request.GoIdent.GoName
-
-	g.P("// ParsePageToken decodes the AIP-158 offset `page_token` on ", reqName, "")
-	g.P("// and verifies its checksum against the current request, delegating to")
-	g.P("// [", aipPackage.Ident("ParsePageToken"), "]. On the first page (page_token == \"\") it")
-	g.P("// returns a zero-offset [", aipPackage.Ident("PageToken"), "] carrying the current checksum.")
-	g.P("func (x *", reqName, ") ParsePageToken() (", aipPackage.Ident("PageToken"), ", error) {")
-	g.P("	pageToken, err := ", aipPackage.Ident("ParsePageToken"), "(x)")
-	g.P("	if err != nil {")
-	g.P(`		return `, aipPackage.Ident("PageToken"), `{}, `, fmtPackage.Ident("Errorf"), `("invalid page_token: %w", err)`)
-	g.P("	}")
-	g.P("	return pageToken, nil")
-	g.P("}")
-	g.P()
-}
-
 // celType returns the cel-go type identifier matching the field's proto
 // kind, and whether the field has one at all.
 //
 // Fields with no total order — nested messages other than the well-known
 // Timestamp and Duration, maps, and repeated fields — have none, and cannot
-// appear in a filter or an order_by.
+// appear in a filter.
 func celType(field *protogen.Field) (protogen.GoIdent, bool) {
 	if field.Desc.IsList() || field.Desc.IsMap() {
 		return protogen.GoIdent{}, false
@@ -554,7 +295,7 @@ func celType(field *protogen.Field) (protogen.GoIdent, bool) {
 	return protogen.GoIdent{}, false
 }
 
-// hasCELType reports whether field can appear in a filter or an order_by.
+// hasCELType reports whether field can appear in a filter.
 func hasCELType(field *protogen.Field) bool {
 	_, ok := celType(field)
 	return ok

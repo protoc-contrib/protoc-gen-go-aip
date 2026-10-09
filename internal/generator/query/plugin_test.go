@@ -70,6 +70,41 @@ func TestGenerate_SkipsFilesWithoutListMethod(t *testing.T) {
 	}
 }
 
+func TestGenerate_SkipsListRequestsWithoutFilter(t *testing.T) {
+	fd := syntheticFileDescriptor(t, "unfiltered.proto", func(fd *descriptorpb.FileDescriptorProto) {
+		// A List method whose request pages and orders but has no filter:
+		// ordering and page tokens belong to the query layer, so nothing is
+		// generated for them.
+		fd.MessageType = []*descriptorpb.DescriptorProto{
+			resourceMessage("Widget", "example/Widget", scalarField("name", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING)),
+			{
+				Name: proto.String("ListWidgetsRequest"),
+				Field: []*descriptorpb.FieldDescriptorProto{
+					scalarField("page_size", 1, descriptorpb.FieldDescriptorProto_TYPE_INT32),
+					scalarField("page_token", 2, descriptorpb.FieldDescriptorProto_TYPE_STRING),
+					scalarField("order_by", 3, descriptorpb.FieldDescriptorProto_TYPE_STRING),
+				},
+			},
+			listResponseMessage("ListWidgetsResponse", ".unfiltered.Widget"),
+		}
+		fd.Service = []*descriptorpb.ServiceDescriptorProto{{
+			Name: proto.String("Widgets"),
+			Method: []*descriptorpb.MethodDescriptorProto{{
+				Name:       proto.String("ListWidgets"),
+				InputType:  proto.String(".unfiltered.ListWidgetsRequest"),
+				OutputType: proto.String(".unfiltered.ListWidgetsResponse"),
+			}},
+		}}
+	})
+	plugin := newPlugin(t, buildRequest(t, []string{"unfiltered.proto"}, append(allRegisteredFiles(), fd)))
+	if err := query.Generate(plugin); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if n := len(plugin.Response().File); n != 0 {
+		t.Fatalf("expected no generated files, got %d", n)
+	}
+}
+
 // --- helpers ---
 
 func newPlugin(t *testing.T, req *pluginpb.CodeGeneratorRequest) *protogen.Plugin {
