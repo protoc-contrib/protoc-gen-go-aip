@@ -55,5 +55,15 @@ var _ = Describe("Generated AIP helpers", func() {
 			Entry("AIP-160 conjunction", `title == "x" AND published`),
 			Entry("AIP-160 has", `title:"x"`),
 		)
+
+		DescribeTable("rejects an expression that does not evaluate to bool",
+			func(filter string) {
+				_, err := (&testpb.ListBooksRequest{Filter: filter}).ParseFilter()
+				Expect(err).To(MatchError(ContainSubstring("invalid filter: must evaluate to bool")))
+			},
+			Entry("bare string field", "title"),
+			Entry("arithmetic", "1 + 2"),
+			Entry("timestamp field", "create_time"),
+		)
 	})
 })

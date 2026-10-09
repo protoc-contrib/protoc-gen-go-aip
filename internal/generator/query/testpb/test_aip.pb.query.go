@@ -31,8 +31,9 @@ func init() {
 }
 
 // ParseFilter compiles the CEL `filter` expression on ListBooksRequest against
-// [ListBooksFilterEnv]. It returns (nil, nil) when no filter was
-// provided. The returned error is suitable for a connect InvalidArgument
+// [ListBooksFilterEnv] and rejects one that does not evaluate to bool.
+// It returns (nil, nil) when no filter was provided. The returned error
+// is suitable for a connect InvalidArgument
 // response; the *cel.Ast can be passed straight to pgxcel.Transpile.
 func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error) {
 	if x.GetFilter() == "" {
@@ -41,6 +42,11 @@ func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error) {
 	ast, issues := ListBooksFilterEnv.Compile(x.GetFilter())
 	if err := issues.Err(); err != nil {
 		return nil, fmt.Errorf("invalid filter: %w", err)
+	}
+	// A filter is a predicate; anything else would only fail further down,
+	// in the query layer or the database, with a less clear error.
+	if !ast.OutputType().IsExactType(cel.BoolType) {
+		return nil, fmt.Errorf("invalid filter: must evaluate to bool, got %s", ast.OutputType())
 	}
 	return ast, nil
 }
