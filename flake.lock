@@ -18,6 +18,29 @@
         "type": "github"
       }
     },
+    "nix-release-bin": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791627526,
+        "narHash": "sha256-XQI0Fo6psJ1B03fYQjQETTdX0+eOGBEdMOVIsfdJ0OE=",
+        "owner": "nixos-contrib",
+        "repo": "nix-release-bin",
+        "rev": "4117e56ae6c0eb6194ba65561c2761b625f2b874",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos-contrib",
+        "repo": "nix-release-bin",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1790510107,
@@ -37,6 +60,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "nix-release-bin": "nix-release-bin",
         "nixpkgs": "nixpkgs"
       }
     },
