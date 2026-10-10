@@ -51,7 +51,7 @@
         packages = {
           # The latest release binary, where it has one for the system: CI pins
           # them in the manifest once the release has published them.
-          default = nix-release-bin.lib.mkReleaseBinary {
+          default = nix-release-bin.lib.mkReleaseBin {
             inherit pkgs;
             lock = ./.github/config/nix-release-manifest.json;
             pname = "protoc-gen-go-aip";
