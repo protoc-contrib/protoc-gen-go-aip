@@ -1,8 +1,8 @@
 // Command protoc-gen-go-aip is a protoc plugin that emits two companion
 // files for every input proto: _aip.pb.resource.go (resource-name parsers
 // driven by google.api.resource / google.api.resource_reference) and
-// _aip.pb.query.go (AIP-132/158 helpers and a CEL filter environment for
-// every List request).
+// _aip.pb.query.go (an AIP-160 CEL filter environment and ParseFilter for
+// every List request with a filter field).
 //
 // Neither pass needs annotating. A request is a List request when a
 // service method takes it and returns a message with a single repeated
