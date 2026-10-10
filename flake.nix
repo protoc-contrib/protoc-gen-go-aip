@@ -53,7 +53,7 @@
           # them in the manifest once the release has published them.
           default = nix-release-bin.lib.mkReleaseBin {
             inherit pkgs;
-            lock = ./.github/config/nix-release-manifest.json;
+            manifest = ./.github/config/nix-release-bin-manifest.json;
             pname = "protoc-gen-go-aip";
             fallback = source;
           };

@@ -159,7 +159,7 @@ jobs:
           files: release/*
 
   # Pins the binaries just published in
-  # .github/config/nix-release-manifest.json, so the flake installs them
+  # .github/config/nix-release-bin-manifest.json, so the flake installs them
   # instead of building from source. The pull request is opened with the App
   # token, as one opened with GITHUB_TOKEN starts no CI.
   pin:
@@ -186,7 +186,7 @@ jobs:
         uses: nixos-contrib/nix-release-bin@main
         with:
           tag: ${{ needs.release.outputs.tag_name }}
-          lock-file: .github/config/nix-release-manifest.json
+          manifest-file: .github/config/nix-release-bin-manifest.json
 
       - name: Create Pull Request
         if: steps.pin.outputs.updated == 'true'
