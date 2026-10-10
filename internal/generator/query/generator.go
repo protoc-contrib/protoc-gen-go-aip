@@ -256,7 +256,7 @@ func emitParseFilter(g *protogen.GeneratedFile, r requestInfo) {
 	g.P("// [", prefix, "FilterEnv] and rejects one that does not evaluate to bool.")
 	g.P("// It returns (nil, nil) when no filter was provided, a blank one included.")
 	g.P("// The returned error is suitable for a connect InvalidArgument response;")
-	g.P("// the *cel.Ast can be passed straight to pgxcel.Transpile.")
+	g.P("// the *cel.Ast can be passed straight to pgxcel.Where.")
 	g.P("func (x *", reqName, ") ParseFilter() (*", celPackage.Ident("Ast"), ", error) {")
 	g.P(`	if `, stringsPackage.Ident("TrimSpace"), `(x.GetFilter()) == "" {`)
 	g.P("		return nil, nil")

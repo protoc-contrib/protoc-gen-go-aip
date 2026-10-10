@@ -180,7 +180,7 @@ Call sites stay terse:
 name, err := ParseBookName("books/foo")        // BookName{BookID: "foo"}, nil
 
 filter, err := req.ParseFilter()               // *cel.Ast checked against ListBooksFilterEnv; nil when blank
-where, args, err := pgxcel.Transpile(filter, pgxcel.WithColumns(columns))
+where, args, err := pgxcel.Where(filter, pgxcel.WithColumns(columns))
 ```
 
 ## Installation
