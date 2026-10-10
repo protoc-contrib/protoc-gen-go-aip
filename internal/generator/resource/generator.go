@@ -82,6 +82,7 @@ func newRegistry() *registry {
 }
 
 func (r *registry) insert(f *protogen.File, res *resource) {
+	res.File = f
 	r.byFile[f] = append(r.byFile[f], res)
 	r.byType[res.Type] = res
 	r.all = append(r.all, res)
@@ -195,7 +196,8 @@ func generateFile(plugin *protogen.Plugin, f *protogen.File, reg *registry, opts
 	if err != nil {
 		return err
 	}
-	if len(resources) == 0 && len(refs) == 0 {
+	createIDs := collectCreateIDs(f, reg)
+	if len(resources) == 0 && len(refs) == 0 && len(createIDs) == 0 {
 		return nil
 	}
 
@@ -214,7 +216,105 @@ func generateFile(plugin *protogen.Plugin, f *protogen.File, reg *registry, opts
 	for _, ref := range refs {
 		emitReference(g, ref)
 	}
+	for _, c := range createIDs {
+		emitCreateID(g, c)
+	}
 	return nil
+}
+
+// createID is the AIP-133 accessor for the ID a Create<Resource>Request
+// proposes for the resource it creates.
+type createID struct {
+	Request  *protogen.Message
+	Field    *protogen.Field
+	Resource *resource
+	Segment  segment
+}
+
+// collectCreateIDs finds every Create<Resource>Request declared in f whose
+// <resource>_id field gets an accessor: the same rule protoc-gen-rust-aip
+// applies, case for case.
+//
+// Only a single-pattern resource whose own ID — the last variable segment —
+// is typed as a UUID qualifies. A string ID has no validity rule the schema
+// states, so it gets no accessor rather than a guess; and a multi-pattern
+// resource's create request does not say which pattern it creates under.
+// The request must be in the resource's proto package, named as AIP-133 names
+// it, and carry the ID as a singular string field.
+func collectCreateIDs(f *protogen.File, reg *registry) []createID {
+	var out []createID
+	for _, res := range reg.all {
+		if len(res.Patterns) != 1 {
+			continue
+		}
+		seg, ok := ownSegment(res.Patterns[0])
+		if !ok || seg.Format != formatUUID4 {
+			continue
+		}
+		req, ok := reg.createRequests["Create"+res.Type.TypeName+"Request"]
+		if !ok || req.Desc.ParentFile().Path() != f.Desc.Path() {
+			continue
+		}
+		if res.File == nil || req.Desc.ParentFile().Package() != res.File.Desc.Package() {
+			continue
+		}
+		for _, field := range req.Fields {
+			if string(field.Desc.Name()) != seg.Name+"_id" {
+				continue
+			}
+			if field.Desc.Kind() == protoreflect.StringKind && !field.Desc.IsList() && !field.Desc.IsMap() {
+				out = append(out, createID{Request: req, Field: field, Resource: res, Segment: seg})
+			}
+			break
+		}
+	}
+	return out
+}
+
+// ownSegment returns a pattern's last variable segment: the resource's own
+// ID, the ones before it belonging to its parents.
+func ownSegment(p pattern) (segment, bool) {
+	for i := len(p) - 1; i >= 0; i-- {
+		if p[i].Var {
+			return p[i], true
+		}
+	}
+	return segment{}, false
+}
+
+// emitCreateID emits Parse<Segment>ID on the create request. An empty field
+// is uuid.Nil rather than an error: AIP-133 reads it as "the server assigns
+// one", and which kind of UUID is the server's choice, not the SDK's, so the
+// accessor mints nothing. The nil UUID itself is refused when proposed, since
+// it would be indistinguishable from "none" and a name's Validate rejects it.
+func emitCreateID(g *protogen.GeneratedFile, c createID) {
+	method := "Parse" + strings.TrimSuffix(c.Field.GoName, "Id") + "ID"
+	protoField := string(c.Field.Desc.Name())
+	fullType := c.Resource.Type.ServiceName + "/" + c.Resource.Type.TypeName
+
+	g.P("// ", method, " returns the ID the caller proposed for the ", strconv.Quote(fullType))
+	g.P("// being created, or uuid.Nil when they left ", protoField, " empty.")
+	g.P("//")
+	g.P("// AIP-133: an empty ", protoField, " means the server assigns one, and which")
+	g.P("// kind is the server's to decide — a version 7 UUID keeps an index in")
+	g.P("// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back")
+	g.P("// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,")
+	g.P("// not a resource name: build the name with ", c.Resource.ParsedType.GoName, "{", c.Segment.FieldName(), ": id}.")
+	g.P("func (x *", c.Request.GoIdent, ") ", method, "() (", uuidPackage.Ident("UUID"), ", error) {")
+	g.P("id := x.Get", c.Field.GoName, "()")
+	g.P(`if id == "" {`)
+	g.P("return ", uuidPackage.Ident("Nil"), ", nil")
+	g.P("}")
+	g.P("parsed, err := ", uuidPackage.Ident("Parse"), "(id)")
+	g.P("if err != nil {")
+	g.P("return ", uuidPackage.Ident("Nil"), ", ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: %w", id, err)`)
+	g.P("}")
+	g.P("if parsed == ", uuidPackage.Ident("Nil"), " {")
+	g.P("return ", uuidPackage.Ident("Nil"), ", ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: the nil UUID is not an ID", id)`)
+	g.P("}")
+	g.P("return parsed, nil")
+	g.P("}")
+	g.P()
 }
 
 // emitResource emits the parse/reconstruct helpers for a single resource.
@@ -227,7 +327,6 @@ func emitResource(g *protogen.GeneratedFile, r *resource, reg *registry) error {
 			return err
 		}
 		emitPatternStruct(g, r, r.ParsedType.GoName, r.ParseFunc.GoName, r.FullParseFunc.GoName, "", parent, r.Patterns[0])
-		emitSingleIDHelpers(g, r, r.Patterns[0])
 		return nil
 	}
 
@@ -249,48 +348,6 @@ func emitResource(g *protogen.GeneratedFile, r *resource, reg *registry) error {
 	}
 	emitMultiPatternInterface(g, r, embed, implNames)
 	return nil
-}
-
-// emitSingleIDHelpers emits Format<TypeName>Name and Parse<TypeName>ID for
-// single-pattern resources whose pattern has exactly one variable segment
-// with a typed (non-string) format. The helpers are plain top-level functions
-// so code generators like goverter can consume them via their "extend"
-// directive — something a method expression or struct-literal conversion
-// can't express. The string case is intentionally skipped: the signatures
-// would collide across resources and the underlying conversion is a no-op
-// anyway, so struct-literal use remains preferable there.
-func emitSingleIDHelpers(g *protogen.GeneratedFile, r *resource, p pattern) {
-	var varCount int
-	var varSeg segment
-	for _, s := range p {
-		if s.Var {
-			varCount++
-			varSeg = s
-		}
-	}
-	if varCount != 1 || varSeg.Format == formatString {
-		return
-	}
-
-	typeName := r.ParsedType.GoName
-	idType := segmentGoType(g, varSeg)
-	fieldName := varSeg.FieldName()
-	formatFn := "Format" + typeName
-	parseFn := "Parse" + r.Type.TypeName + "ID"
-	fullType := r.Type.ServiceName + "/" + r.Type.TypeName
-
-	g.P("// ", formatFn, " returns the relative resource name for a ", strconv.Quote(fullType), " with the given id.")
-	g.P("func ", formatFn, "(id ", idType, ") string {")
-	g.P("return ", typeName, "{", fieldName, ": id}.String()")
-	g.P("}")
-	g.P()
-
-	g.P("// ", parseFn, " parses s as ", typeName, " and returns its ", fieldName, " field.")
-	g.P("func ", parseFn, "(s string) (", idType, ", error) {")
-	g.P("parsed, err := ", r.ParseFunc.GoName, "(s)")
-	g.P("return parsed.", fieldName, ", err")
-	g.P("}")
-	g.P()
 }
 
 // variantNames returns the Go type names for each pattern of a multi-pattern

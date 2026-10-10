@@ -91,17 +91,6 @@ func (n CollectionName) ContainsWildcard() bool {
 	return false
 }
 
-// FormatCollectionName returns the relative resource name for a "example.com/Collection" with the given id.
-func FormatCollectionName(id uuid.UUID) string {
-	return CollectionName{CollectionID: id}.String()
-}
-
-// ParseCollectionID parses s as CollectionName and returns its CollectionID field.
-func ParseCollectionID(s string) (uuid.UUID, error) {
-	parsed, err := ParseCollectionName(s)
-	return parsed.CollectionID, err
-}
-
 // OrganizationName is the parsed form of a "example.com/Organization" resource name (pattern "organizations/{organization}").
 type OrganizationName struct {
 	OrganizationID uuid.UUID
@@ -182,17 +171,6 @@ func (n OrganizationName) Pattern() string {
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n OrganizationName) ContainsWildcard() bool {
 	return false
-}
-
-// FormatOrganizationName returns the relative resource name for a "example.com/Organization" with the given id.
-func FormatOrganizationName(id uuid.UUID) string {
-	return OrganizationName{OrganizationID: id}.String()
-}
-
-// ParseOrganizationID parses s as OrganizationName and returns its OrganizationID field.
-func ParseOrganizationID(s string) (uuid.UUID, error) {
-	parsed, err := ParseOrganizationName(s)
-	return parsed.OrganizationID, err
 }
 
 // ItemName is the parsed form of a "example.com/Item" resource name (pattern "organizations/{organization}/items/{item}").
@@ -337,4 +315,73 @@ func (x *Item) ParseName() (ItemName, error) {
 // ParseFullName parses x.Name as ItemName.
 func (x *Item) ParseFullName() (ItemName, error) {
 	return ParseFullItemName(x.Name)
+}
+
+// ParseCollectionID returns the ID the caller proposed for the "example.com/Collection"
+// being created, or uuid.Nil when they left collection_id empty.
+//
+// AIP-133: an empty collection_id means the server assigns one, and which
+// kind is the server's to decide — a version 7 UUID keeps an index in
+// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
+// not a resource name: build the name with CollectionName{CollectionID: id}.
+func (x *CreateCollectionRequest) ParseCollectionID() (uuid.UUID, error) {
+	id := x.GetCollectionId()
+	if id == "" {
+		return uuid.Nil, nil
+	}
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("parse collection_id %q: %w", id, err)
+	}
+	if parsed == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("parse collection_id %q: the nil UUID is not an ID", id)
+	}
+	return parsed, nil
+}
+
+// ParseOrganizationID returns the ID the caller proposed for the "example.com/Organization"
+// being created, or uuid.Nil when they left organization_id empty.
+//
+// AIP-133: an empty organization_id means the server assigns one, and which
+// kind is the server's to decide — a version 7 UUID keeps an index in
+// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
+// not a resource name: build the name with OrganizationName{OrganizationID: id}.
+func (x *CreateOrganizationRequest) ParseOrganizationID() (uuid.UUID, error) {
+	id := x.GetOrganizationId()
+	if id == "" {
+		return uuid.Nil, nil
+	}
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("parse organization_id %q: %w", id, err)
+	}
+	if parsed == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("parse organization_id %q: the nil UUID is not an ID", id)
+	}
+	return parsed, nil
+}
+
+// ParseItemID returns the ID the caller proposed for the "example.com/Item"
+// being created, or uuid.Nil when they left item_id empty.
+//
+// AIP-133: an empty item_id means the server assigns one, and which
+// kind is the server's to decide — a version 7 UUID keeps an index in
+// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
+// not a resource name: build the name with ItemName{ItemID: id}.
+func (x *CreateItemRequest) ParseItemID() (uuid.UUID, error) {
+	id := x.GetItemId()
+	if id == "" {
+		return uuid.Nil, nil
+	}
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("parse item_id %q: %w", id, err)
+	}
+	if parsed == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("parse item_id %q: the nil UUID is not an ID", id)
+	}
+	return parsed, nil
 }

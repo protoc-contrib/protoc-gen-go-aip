@@ -64,6 +64,16 @@ package:
   have the generated struct field typed as `uuid.UUID` and validated at
   parse time. The parent UUID consistency check is automatic across the
   pattern tree.
+- **AIP-133 create IDs** — that same `Create<Resource>Request` gains a
+  `Parse<Resource>ID()` method returning the ID the caller proposed, or
+  `uuid.Nil` when `<resource>_id` is empty: AIP-133 reads that as "the
+  server assigns one", and which kind of UUID is the server's choice, so
+  the accessor mints nothing —
+  `if id == uuid.Nil { id, _ = uuid.NewV7() }` says which at the call site.
+  Only for a single-pattern resource with a UUID-typed own ID, as in
+  `protoc-gen-rust-aip`: a string ID has no validity rule the schema
+  states, and a multi-pattern resource's create request does not say which
+  pattern it creates under.
 
 ### Query pass
 
@@ -75,10 +85,13 @@ emits:
 - **`<Request>FilterEnv`** — a `*cel.Env` declaring every resource field
   that has a CEL type (strings, numbers, bools, enums as ints,
   `Timestamp`, `Duration`). Nested messages, repeated fields and maps are
-  skipped.
+  skipped. It has **no macros and no optional syntax**: `exists`, `has` and
+  the like would expand to comprehensions and presence tests, and `a.?b` to
+  an optional, none of which has a reading as a query — the same grammar
+  `protoc-gen-rust-aip`'s environment accepts.
 - **`ParseFilter()`** — compiles the `filter` expression against that
   environment and returns the checked `*cel.Ast`, or `(nil, nil)` when
-  the filter is empty. Pass the AST to a query layer such as
+  the filter is empty or blank. Pass the AST to a query layer such as
   [`pgxcel`](https://github.com/pgx-contrib/pgxcel), whose column map
   decides which fields a client may actually filter by.
 
@@ -157,7 +170,7 @@ Call sites stay terse:
 ```go
 name, err := ParseBookName("books/foo")        // BookName{BookID: "foo"}, nil
 
-filter, err := req.ParseFilter()               // *cel.Ast checked against ListBooksFilterEnv; nil when empty
+filter, err := req.ParseFilter()               // *cel.Ast checked against ListBooksFilterEnv; nil when blank
 where, args, err := pgxcel.Transpile(filter, pgxcel.WithColumns(columns))
 ```
 
