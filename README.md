@@ -11,7 +11,7 @@ AIP](https://aip.dev) resource patterns and List-RPC query handling. It is
 a unification of two earlier `protoc-contrib` plugins, with selected
 additions adopted from [`go.einride.tech/aip`](https://github.com/einride/aip-go).
 
-For each `.proto` it emits up to three companion files in the same Go
+For each `.proto` it emits up to two companion files in the same Go
 package:
 
 - **`*_aip.pb.resource.go`** — resource-name parsers and helpers driven
@@ -19,9 +19,6 @@ package:
 - **`*_aip.pb.query.go`** — AIP-160 CEL filter helpers on List requests
   that carry a `filter` field. The resource is read off the List method's
   response, so nothing needs annotating.
-- **`*_aip.pb.fieldmask.go`** — `Validate()` on AIP-134 update-request
-  shaped messages, delegating to
-  [`aip-go`'s `ValidateFieldMask`](https://pkg.go.dev/github.com/protoc-contrib/aip-go#ValidateFieldMask).
 
 > **⚠ Binary-name collision.** This plugin's binary is `protoc-gen-go-aip`,
 > the same name used by the upstream einride plugin under
@@ -90,21 +87,6 @@ make sense against the column map, ordering and SQL that actually run,
 which the `.proto` can't see, so they belong to the query layer.
 `protoc-gen-rust-aip` generates nothing for them either.
 
-### Fieldmask pass
-
-- **`Validate()`** — for any message that pairs exactly one
-  `google.protobuf.FieldMask` field with exactly one other singular
-  message-typed field (the AIP-134 update-request shape, e.g.
-  `UpdateBookRequest { Book book = 1; FieldMask update_mask = 2; }`),
-  emits a `Validate()` method that delegates to
-  `aip_go.ValidateFieldMask(mask, target)`. A nil mask is accepted as full
-  replacement; `"*"` is accepted only as the sole path; every other path
-  must resolve to a field on the target message. Detection is purely
-  structural — the rule applies regardless of whether the request is
-  named `Update*Request`, `Patch*Request`, or otherwise. Messages with
-  zero or two-plus message-typed fields are silently skipped to avoid
-  emitting half-validated code.
-
 ## Example
 
 Given this `books.proto`:
@@ -115,7 +97,6 @@ syntax = "proto3";
 package books.v1;
 
 import "google/api/resource.proto";
-import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 
 message Book {
@@ -141,18 +122,13 @@ message ListBooksResponse {
   string next_page_token = 2;
 }
 
-message UpdateBookRequest {
-  Book book = 1;
-  google.protobuf.FieldMask update_mask = 2;
-}
-
 service Library {
   // ListBooksResponse's repeated Book makes this the List method for Book.
   rpc ListBooks(ListBooksRequest) returns (ListBooksResponse);
 }
 ```
 
-`buf generate` produces three companion files. The highlights:
+`buf generate` produces two companion files. The highlights:
 
 **`books_aip.pb.resource.go`** — resource-name parser:
 
@@ -176,13 +152,6 @@ var ListBooksFilterEnv *cel.Env
 func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error)
 ```
 
-**`books_aip.pb.fieldmask.go`** — update-mask validator:
-
-```go
-// Validate delegates to aip_go.ValidateFieldMask(x.UpdateMask, x.Book).
-func (x *UpdateBookRequest) Validate() error
-```
-
 Call sites stay terse:
 
 ```go
@@ -190,10 +159,6 @@ name, err := ParseBookName("books/foo")        // BookName{BookID: "foo"}, nil
 
 filter, err := req.ParseFilter()               // *cel.Ast checked against ListBooksFilterEnv; nil when empty
 where, args, err := pgxcel.Transpile(filter, pgxcel.WithColumns(columns))
-
-if err := updateReq.Validate(); err != nil {   // update_mask references a non-Book field
-    return status.Error(codes.InvalidArgument, err.Error())
-}
 ```
 
 ## Installation

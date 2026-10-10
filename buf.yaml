@@ -1,6 +1,6 @@
 version: v2
 
-# Workspace of three fixture modules.
+# Workspace of two fixture modules.
 #
 # The plugin publishes no protos of its own: both passes derive everything
 # from google.api annotations and message shape, so there are no custom
@@ -10,14 +10,13 @@ version: v2
 #
 #   - each tree is its own import root, so reference.proto can import
 #     "simple/simple.proto" the way its own directory sees it;
-#   - names are scoped per module, so query/ and fieldmask/ may both
+#   - names are scoped per module, so resource/ and query/ may both
 #     declare `package testpb` without colliding.
 #
 # Regenerate fixtures with a plain `buf generate` from the repo root.
 modules:
   - path: internal/generator/resource/testpb
   - path: internal/generator/query/testpb
-  - path: internal/generator/fieldmask/testpb
 
 deps:
   - buf.build/googleapis/googleapis

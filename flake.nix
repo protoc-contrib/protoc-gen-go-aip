@@ -30,7 +30,7 @@
           inherit version;
           src = pkgs.lib.cleanSource ./.;
           subPackages = [ "cmd/protoc-gen-go-aip" ];
-          vendorHash = "sha256-Gzq/i2N9IBzXbKcM+r+IBQpXVUHFdWijkU1fi/9KgAg=";
+          vendorHash = "sha256-vgdp+XOdEvVyy+zdJLJFfJI5mKzv9CZ1KHjyL6irbGo=";
           ldflags = [
             "-s"
             "-w"
