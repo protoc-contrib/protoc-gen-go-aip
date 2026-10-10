@@ -64,6 +64,13 @@ package:
   have the generated struct field typed as `uuid.UUID` and validated at
   parse time. The parent UUID consistency check is automatic across the
   pattern tree.
+- **ID helpers for goverter** — a single-pattern resource whose only
+  variable segment is UUID-typed also gets two free functions,
+  `Format<Resource>Name(id uuid.UUID) string` and
+  `Parse<Resource>ID(s string) (uuid.UUID, error)`, which convert between
+  a whole resource name and its ID. They are plain functions so goverter's
+  `extend` directive can use them, which a method expression or a struct
+  literal can't express.
 - **AIP-133 create IDs** — that same `Create<Resource>Request` gains a
   `Parse<Resource>ID()` method returning the ID the caller proposed, or
   `uuid.Nil` when `<resource>_id` is empty: AIP-133 reads that as "the
@@ -73,7 +80,9 @@ package:
   Only for a single-pattern resource with a UUID-typed own ID, as in
   `protoc-gen-rust-aip`: a string ID has no validity rule the schema
   states, and a multi-pattern resource's create request does not say which
-  pattern it creates under.
+  pattern it creates under. It shares a name with the free function above
+  but reads something different: the bare ID the request carries, not a
+  resource name.
 
 ### Query pass
 

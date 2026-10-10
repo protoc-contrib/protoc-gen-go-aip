@@ -24,6 +24,23 @@ var _ = Describe("UUID-typed resource names", func() {
 		Expect(err.Error()).To(ContainSubstring(`parse "collections/not-a-uuid": segment 1:`))
 	})
 
+	It("round-trips a UUID id through Format and Parse helpers", func() {
+		id := googleuuid.MustParse("44444444-4444-4444-8444-444444444444")
+
+		name := uuid.FormatCollectionName(id)
+		Expect(name).To(Equal("collections/" + id.String()))
+
+		got, err := uuid.ParseCollectionID(name)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).To(Equal(id))
+	})
+
+	It("surfaces a parse error from ParseCollectionID when the name is malformed", func() {
+		_, err := uuid.ParseCollectionID("collections/not-a-uuid")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring(`parse "collections/not-a-uuid": segment 1:`))
+	})
+
 	Describe("the AIP-133 create-ID accessor", func() {
 		It("is uuid.Nil when the caller proposes no ID", func() {
 			got, err := (&uuid.CreateCollectionRequest{}).ParseCollectionID()
