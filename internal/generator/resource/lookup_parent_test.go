@@ -33,7 +33,7 @@ var _ = Describe("lookupParent format consistency", func() {
 			Patterns: []pattern{childPat},
 		})
 
-		_, err := lookupParent(childPat, reg)
+		_, err := lookupParent(childPat, "", reg)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring(`segment "organization"`))
 		Expect(err.Error()).To(ContainSubstring(`parent "example.com/Organization"`))
@@ -61,7 +61,7 @@ var _ = Describe("lookupParent format consistency", func() {
 			Patterns: []pattern{childPat},
 		})
 
-		got, err := lookupParent(childPat, reg)
+		got, err := lookupParent(childPat, "", reg)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(got).NotTo(BeNil())
 	})

@@ -284,30 +284,30 @@ func (n ProjectName) ProjectThingName(
 
 // ParseName parses x.Name as ThingName.
 func (x *Thing) ParseName() (ThingName, error) {
-	return ParseThingName(x.Name)
+	return ParseThingName(x.GetName())
 }
 
 // ParseFullName parses x.Name as ThingName.
 func (x *Thing) ParseFullName() (ThingName, error) {
-	return ParseFullThingName(x.Name)
+	return ParseFullThingName(x.GetName())
 }
 
 // ParseName parses x.Name as ProjectName.
 func (x *Project) ParseName() (ProjectName, error) {
-	return ParseProjectName(x.Name)
+	return ParseProjectName(x.GetName())
 }
 
 // ParseFullName parses x.Name as ProjectName.
 func (x *Project) ParseFullName() (ProjectName, error) {
-	return ParseFullProjectName(x.Name)
+	return ParseFullProjectName(x.GetName())
 }
 
 // ParseName parses x.Name as ProjectThingName.
 func (x *ProjectThing) ParseName() (ProjectThingName, error) {
-	return ParseProjectThingName(x.Name)
+	return ParseProjectThingName(x.GetName())
 }
 
 // ParseFullName parses x.Name as ProjectThingName.
 func (x *ProjectThing) ParseFullName() (ProjectThingName, error) {
-	return ParseFullProjectThingName(x.Name)
+	return ParseFullProjectThingName(x.GetName())
 }

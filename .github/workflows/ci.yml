@@ -142,9 +142,6 @@ jobs:
       contents: write
     timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
       - name: Download Binaries
         uses: actions/download-artifact@v8
         with:
@@ -158,14 +155,3 @@ jobs:
         with:
           tag_name: ${{ needs.release.outputs.tag_name }}
           files: release/*
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v23
-
-
-      - name: Push to Buf Schema Registry
-        run: |
-          nix develop --command \
-            buf push --label main --label ${{ needs.release.outputs.tag_name }}
-        env:
-          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}

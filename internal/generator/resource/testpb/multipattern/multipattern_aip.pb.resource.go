@@ -421,30 +421,30 @@ func ParseFullBookName(s string) (BookName, error) {
 
 // ParseName parses x.Name as PublisherName.
 func (x *Publisher) ParseName() (PublisherName, error) {
-	return ParsePublisherName(x.Name)
+	return ParsePublisherName(x.GetName())
 }
 
 // ParseFullName parses x.Name as PublisherName.
 func (x *Publisher) ParseFullName() (PublisherName, error) {
-	return ParseFullPublisherName(x.Name)
+	return ParseFullPublisherName(x.GetName())
 }
 
 // ParseName parses x.Name as AuthorName.
 func (x *Author) ParseName() (AuthorName, error) {
-	return ParseAuthorName(x.Name)
+	return ParseAuthorName(x.GetName())
 }
 
 // ParseFullName parses x.Name as AuthorName.
 func (x *Author) ParseFullName() (AuthorName, error) {
-	return ParseFullAuthorName(x.Name)
+	return ParseFullAuthorName(x.GetName())
 }
 
 // ParseName parses x.Name as BookName.
 func (x *Book) ParseName() (BookName, error) {
-	return ParseBookName(x.Name)
+	return ParseBookName(x.GetName())
 }
 
 // ParseFullName parses x.Name as BookName.
 func (x *Book) ParseFullName() (BookName, error) {
-	return ParseFullBookName(x.Name)
+	return ParseFullBookName(x.GetName())
 }

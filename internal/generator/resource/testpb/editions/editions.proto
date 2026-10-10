@@ -1,0 +1,33 @@
+// Edition 2023 defaults every singular scalar to explicit presence, which
+// protoc-gen-go generates as *string. Every accessor here has to go through
+// the getter to compile: the resource name, a reference, and the AIP-133
+// create ID.
+edition = "2023";
+
+package tests.editions;
+
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/editions";
+
+import "google/api/field_info.proto";
+import "google/api/resource.proto";
+
+message Gadget {
+  option (google.api.resource) = {
+    type: "example.com/Gadget"
+    pattern: "gadgets/{gadget}"
+  };
+
+  string name = 1;
+  string twin = 2 [(google.api.resource_reference) = { type: "example.com/Gadget" }];
+}
+
+message CreateGadgetRequest {
+  Gadget gadget = 1;
+  string gadget_id = 2 [(google.api.field_info).format = UUID4];
+}
+
+// AIP-231 Batch Get: a repeated reference carries no single name to parse,
+// so it generates nothing rather than failing generation.
+message BatchGetGadgetsRequest {
+  repeated string names = 1 [(google.api.resource_reference) = { type: "example.com/Gadget" }];
+}
