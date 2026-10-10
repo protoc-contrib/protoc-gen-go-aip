@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.2.0...v0.2.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* read fields through getters, skip repeated references, resolve types per package ([#57](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/57)) ([e38cd16](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/e38cd16833dd4cbf86424d19befed14f0cf044d7))
+
 ## [0.2.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.1.3...v0.2.0) (2026-10-10)
 
 
