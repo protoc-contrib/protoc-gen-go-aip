@@ -6,16 +6,22 @@ package testpb
 import (
 	cel "cel.dev/cel-go/cel"
 	fmt "fmt"
+	strings "strings"
 )
 
 // ListBooksFilterEnv is the CEL environment used to compile `filter`
 // expressions on ListBooksRequest. It declares every field of
 // Book that has a CEL type; which of them a client may
 // actually query is gated by the column map at the query layer.
+//
+// It has no macros and no optional syntax: `exists`, `has` and the like
+// would expand to comprehensions and presence tests, and `a.?b` to an
+// optional, none of which has a reading as a query.
 var ListBooksFilterEnv *cel.Env
 
 func init() {
 	env, err := cel.NewEnv(
+		cel.ClearMacros(),
 		cel.Variable("name", cel.StringType),
 		cel.Variable("title", cel.StringType),
 		cel.Variable("author", cel.StringType),
@@ -32,11 +38,11 @@ func init() {
 
 // ParseFilter compiles the CEL `filter` expression on ListBooksRequest against
 // [ListBooksFilterEnv] and rejects one that does not evaluate to bool.
-// It returns (nil, nil) when no filter was provided. The returned error
-// is suitable for a connect InvalidArgument
-// response; the *cel.Ast can be passed straight to pgxcel.Transpile.
+// It returns (nil, nil) when no filter was provided, a blank one included.
+// The returned error is suitable for a connect InvalidArgument response;
+// the *cel.Ast can be passed straight to pgxcel.Transpile.
 func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error) {
-	if x.GetFilter() == "" {
+	if strings.TrimSpace(x.GetFilter()) == "" {
 		return nil, nil
 	}
 	ast, issues := ListBooksFilterEnv.Compile(x.GetFilter())

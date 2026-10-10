@@ -30,8 +30,9 @@ import (
 const generatedFilenameSuffix = "_aip.pb.query.go"
 
 var (
-	fmtPackage = protogen.GoImportPath("fmt")
-	celPackage = protogen.GoImportPath("cel.dev/cel-go/cel")
+	fmtPackage     = protogen.GoImportPath("fmt")
+	stringsPackage = protogen.GoImportPath("strings")
+	celPackage     = protogen.GoImportPath("cel.dev/cel-go/cel")
 )
 
 // Generate walks every file scheduled for generation and emits a
@@ -199,6 +200,12 @@ func prefixOf(req *protogen.Message) string {
 // error from NewDeclarations is a codegen bug (duplicate idents, bad CEL
 // types) and is raised as a panic so it surfaces at program start, not on
 // first request.
+//
+// The environment has no macros and no optional syntax, the same grammar
+// protoc-gen-rust-aip's environment accepts: `exists`, `has` and the like
+// would expand to comprehensions and presence tests, and `a.?b` to an
+// optional, none of which has a reading as a query. NewEnv enables optional
+// syntax only through cel.OptionalTypes, which is never passed.
 func emitFilterDeclarations(g *protogen.GeneratedFile, r requestInfo) error {
 	prefix := prefixOf(r.request)
 
@@ -219,10 +226,15 @@ func emitFilterDeclarations(g *protogen.GeneratedFile, r requestInfo) error {
 	g.P("// expressions on ", r.request.GoIdent.GoName, ". It declares every field of")
 	g.P("// ", r.filter.resource.GoIdent.GoName, " that has a CEL type; which of them a client may")
 	g.P("// actually query is gated by the column map at the query layer.")
+	g.P("//")
+	g.P("// It has no macros and no optional syntax: `exists`, `has` and the like")
+	g.P("// would expand to comprehensions and presence tests, and `a.?b` to an")
+	g.P("// optional, none of which has a reading as a query.")
 	g.P("var ", prefix, "FilterEnv *", celPackage.Ident("Env"))
 	g.P()
 	g.P("func init() {")
 	g.P("	env, err := ", celPackage.Ident("NewEnv"), "(")
+	g.P("		", celPackage.Ident("ClearMacros"), "(),")
 	for _, d := range decls {
 		g.P(`		`, celPackage.Ident("Variable"), `("`, d.name, `", `, d.kind, `),`)
 	}
@@ -242,11 +254,11 @@ func emitParseFilter(g *protogen.GeneratedFile, r requestInfo) {
 
 	g.P("// ParseFilter compiles the CEL `filter` expression on ", reqName, " against")
 	g.P("// [", prefix, "FilterEnv] and rejects one that does not evaluate to bool.")
-	g.P("// It returns (nil, nil) when no filter was provided. The returned error")
-	g.P("// is suitable for a connect InvalidArgument")
-	g.P("// response; the *cel.Ast can be passed straight to pgxcel.Transpile.")
+	g.P("// It returns (nil, nil) when no filter was provided, a blank one included.")
+	g.P("// The returned error is suitable for a connect InvalidArgument response;")
+	g.P("// the *cel.Ast can be passed straight to pgxcel.Transpile.")
 	g.P("func (x *", reqName, ") ParseFilter() (*", celPackage.Ident("Ast"), ", error) {")
-	g.P(`	if x.GetFilter() == "" {`)
+	g.P(`	if `, stringsPackage.Ident("TrimSpace"), `(x.GetFilter()) == "" {`)
 	g.P("		return nil, nil")
 	g.P("	}")
 	g.P("	ast, issues := ", prefix, "FilterEnv.Compile(x.GetFilter())")

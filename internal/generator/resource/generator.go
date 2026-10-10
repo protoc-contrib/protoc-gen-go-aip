@@ -82,6 +82,7 @@ func newRegistry() *registry {
 }
 
 func (r *registry) insert(f *protogen.File, res *resource) {
+	res.File = f
 	r.byFile[f] = append(r.byFile[f], res)
 	r.byType[res.Type] = res
 	r.all = append(r.all, res)
@@ -195,7 +196,8 @@ func generateFile(plugin *protogen.Plugin, f *protogen.File, reg *registry, opts
 	if err != nil {
 		return err
 	}
-	if len(resources) == 0 && len(refs) == 0 {
+	createIDs := collectCreateIDs(f, reg)
+	if len(resources) == 0 && len(refs) == 0 && len(createIDs) == 0 {
 		return nil
 	}
 
@@ -214,7 +216,105 @@ func generateFile(plugin *protogen.Plugin, f *protogen.File, reg *registry, opts
 	for _, ref := range refs {
 		emitReference(g, ref)
 	}
+	for _, c := range createIDs {
+		emitCreateID(g, c)
+	}
 	return nil
+}
+
+// createID is the AIP-133 accessor for the ID a Create<Resource>Request
+// proposes for the resource it creates.
+type createID struct {
+	Request  *protogen.Message
+	Field    *protogen.Field
+	Resource *resource
+	Segment  segment
+}
+
+// collectCreateIDs finds every Create<Resource>Request declared in f whose
+// <resource>_id field gets an accessor: the same rule protoc-gen-rust-aip
+// applies, case for case.
+//
+// Only a single-pattern resource whose own ID — the last variable segment —
+// is typed as a UUID qualifies. A string ID has no validity rule the schema
+// states, so it gets no accessor rather than a guess; and a multi-pattern
+// resource's create request does not say which pattern it creates under.
+// The request must be in the resource's proto package, named as AIP-133 names
+// it, and carry the ID as a singular string field.
+func collectCreateIDs(f *protogen.File, reg *registry) []createID {
+	var out []createID
+	for _, res := range reg.all {
+		if len(res.Patterns) != 1 {
+			continue
+		}
+		seg, ok := ownSegment(res.Patterns[0])
+		if !ok || seg.Format != formatUUID4 {
+			continue
+		}
+		req, ok := reg.createRequests["Create"+res.Type.TypeName+"Request"]
+		if !ok || req.Desc.ParentFile().Path() != f.Desc.Path() {
+			continue
+		}
+		if res.File == nil || req.Desc.ParentFile().Package() != res.File.Desc.Package() {
+			continue
+		}
+		for _, field := range req.Fields {
+			if string(field.Desc.Name()) != seg.Name+"_id" {
+				continue
+			}
+			if field.Desc.Kind() == protoreflect.StringKind && !field.Desc.IsList() && !field.Desc.IsMap() {
+				out = append(out, createID{Request: req, Field: field, Resource: res, Segment: seg})
+			}
+			break
+		}
+	}
+	return out
+}
+
+// ownSegment returns a pattern's last variable segment: the resource's own
+// ID, the ones before it belonging to its parents.
+func ownSegment(p pattern) (segment, bool) {
+	for i := len(p) - 1; i >= 0; i-- {
+		if p[i].Var {
+			return p[i], true
+		}
+	}
+	return segment{}, false
+}
+
+// emitCreateID emits Parse<Segment>ID on the create request. An empty field
+// is uuid.Nil rather than an error: AIP-133 reads it as "the server assigns
+// one", and which kind of UUID is the server's choice, not the SDK's, so the
+// accessor mints nothing. The nil UUID itself is refused when proposed, since
+// it would be indistinguishable from "none" and a name's Validate rejects it.
+func emitCreateID(g *protogen.GeneratedFile, c createID) {
+	method := "Parse" + strings.TrimSuffix(c.Field.GoName, "Id") + "ID"
+	protoField := string(c.Field.Desc.Name())
+	fullType := c.Resource.Type.ServiceName + "/" + c.Resource.Type.TypeName
+
+	g.P("// ", method, " returns the ID the caller proposed for the ", strconv.Quote(fullType))
+	g.P("// being created, or uuid.Nil when they left ", protoField, " empty.")
+	g.P("//")
+	g.P("// AIP-133: an empty ", protoField, " means the server assigns one, and which")
+	g.P("// kind is the server's to decide — a version 7 UUID keeps an index in")
+	g.P("// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back")
+	g.P("// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,")
+	g.P("// not a resource name: build the name with ", c.Resource.ParsedType.GoName, "{", c.Segment.FieldName(), ": id}.")
+	g.P("func (x *", c.Request.GoIdent, ") ", method, "() (", uuidPackage.Ident("UUID"), ", error) {")
+	g.P("id := x.Get", c.Field.GoName, "()")
+	g.P(`if id == "" {`)
+	g.P("return ", uuidPackage.Ident("Nil"), ", nil")
+	g.P("}")
+	g.P("parsed, err := ", uuidPackage.Ident("Parse"), "(id)")
+	g.P("if err != nil {")
+	g.P("return ", uuidPackage.Ident("Nil"), ", ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: %w", id, err)`)
+	g.P("}")
+	g.P("if parsed == ", uuidPackage.Ident("Nil"), " {")
+	g.P("return ", uuidPackage.Ident("Nil"), ", ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: the nil UUID is not an ID", id)`)
+	g.P("}")
+	g.P("return parsed, nil")
+	g.P("}")
+	g.P()
 }
 
 // emitResource emits the parse/reconstruct helpers for a single resource.

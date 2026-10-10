@@ -15,6 +15,7 @@ import (
 // parsed name-field (if the definition came from a message), and the set of
 // patterns that identify instances of the resource.
 type resource struct {
+	File          *protogen.File    // the file declaring it, set by registry.insert
 	Message       *protogen.Message // nil for file-level resource_definition
 	NameField     *protogen.Field
 	ParseFunc     protogen.GoIdent

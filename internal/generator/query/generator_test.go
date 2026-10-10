@@ -21,6 +21,12 @@ var _ = Describe("Generated AIP helpers", func() {
 			Expect(ast).To(BeNil())
 		})
 
+		It("reads a blank filter as none", func() {
+			ast, err := (&testpb.ListBooksRequest{Filter: "  \n\t"}).ParseFilter()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ast).To(BeNil())
+		})
+
 		DescribeTable("compiles a valid CEL expression",
 			func(filter string) {
 				ast, err := (&testpb.ListBooksRequest{Filter: filter}).ParseFilter()
@@ -54,6 +60,20 @@ var _ = Describe("Generated AIP helpers", func() {
 			Entry("AIP-160 equality", `title = "x"`),
 			Entry("AIP-160 conjunction", `title == "x" AND published`),
 			Entry("AIP-160 has", `title:"x"`),
+		)
+
+		// No macros and no optional syntax: none has a reading as a query, and
+		// protoc-gen-rust-aip's environment refuses them too.
+		DescribeTable("rejects macros and optional syntax",
+			func(filter string) {
+				_, err := (&testpb.ListBooksRequest{Filter: filter}).ParseFilter()
+				Expect(err).To(MatchError(ContainSubstring("invalid filter")))
+			},
+			Entry("exists", "[1, 2].exists(x, x > 1)"),
+			Entry("all", "[1, 2].all(x, x > 0)"),
+			Entry("map", "[1, 2].map(x, x * 2).size() > 0"),
+			Entry("has", `has(title)`),
+			Entry("optional field selection", `title.?size`),
 		)
 
 		DescribeTable("rejects an expression that does not evaluate to bool",

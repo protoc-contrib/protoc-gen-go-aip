@@ -338,3 +338,72 @@ func (x *Item) ParseName() (ItemName, error) {
 func (x *Item) ParseFullName() (ItemName, error) {
 	return ParseFullItemName(x.Name)
 }
+
+// ParseCollectionID returns the ID the caller proposed for the "example.com/Collection"
+// being created, or uuid.Nil when they left collection_id empty.
+//
+// AIP-133: an empty collection_id means the server assigns one, and which
+// kind is the server's to decide — a version 7 UUID keeps an index in
+// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
+// not a resource name: build the name with CollectionName{CollectionID: id}.
+func (x *CreateCollectionRequest) ParseCollectionID() (uuid.UUID, error) {
+	id := x.GetCollectionId()
+	if id == "" {
+		return uuid.Nil, nil
+	}
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("parse collection_id %q: %w", id, err)
+	}
+	if parsed == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("parse collection_id %q: the nil UUID is not an ID", id)
+	}
+	return parsed, nil
+}
+
+// ParseOrganizationID returns the ID the caller proposed for the "example.com/Organization"
+// being created, or uuid.Nil when they left organization_id empty.
+//
+// AIP-133: an empty organization_id means the server assigns one, and which
+// kind is the server's to decide — a version 7 UUID keeps an index in
+// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
+// not a resource name: build the name with OrganizationName{OrganizationID: id}.
+func (x *CreateOrganizationRequest) ParseOrganizationID() (uuid.UUID, error) {
+	id := x.GetOrganizationId()
+	if id == "" {
+		return uuid.Nil, nil
+	}
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("parse organization_id %q: %w", id, err)
+	}
+	if parsed == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("parse organization_id %q: the nil UUID is not an ID", id)
+	}
+	return parsed, nil
+}
+
+// ParseItemID returns the ID the caller proposed for the "example.com/Item"
+// being created, or uuid.Nil when they left item_id empty.
+//
+// AIP-133: an empty item_id means the server assigns one, and which
+// kind is the server's to decide — a version 7 UUID keeps an index in
+// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
+// not a resource name: build the name with ItemName{ItemID: id}.
+func (x *CreateItemRequest) ParseItemID() (uuid.UUID, error) {
+	id := x.GetItemId()
+	if id == "" {
+		return uuid.Nil, nil
+	}
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("parse item_id %q: %w", id, err)
+	}
+	if parsed == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("parse item_id %q: the nil UUID is not an ID", id)
+	}
+	return parsed, nil
+}
