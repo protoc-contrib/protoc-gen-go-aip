@@ -7,18 +7,24 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource"
+	editionspb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/editions"
 	externalpb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/external"
 	multipb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/multipattern"
 	namefieldpb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/namefield"
 	refpb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/reference"
 	simplepb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/simple"
 	uuidpb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/uuid"
+	v1pb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/versions/v1"
+	v2pb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/versions/v2"
 )
 
 // runGenerator builds a CodeGeneratorRequest covering the given file
@@ -26,6 +32,13 @@ import (
 // The files passed in are the ones flagged for generation; transitive
 // imports are registered with the plugin but not emitted.
 func runGenerator(opts *resource.Options, files ...protoreflect.FileDescriptor) (*pluginpb.CodeGeneratorResponse, error) {
+	return runGeneratorWith(opts, nil, files...)
+}
+
+// runGeneratorWith is runGenerator plus extra, hand-built files appended to
+// the request and flagged for generation — for schemas no checked-in fixture
+// can hold, because buf generate would refuse the whole module over them.
+func runGeneratorWith(opts *resource.Options, extra []*descriptorpb.FileDescriptorProto, files ...protoreflect.FileDescriptor) (*pluginpb.CodeGeneratorResponse, error) {
 	req := &pluginpb.CodeGeneratorRequest{}
 	seen := map[string]bool{}
 	var walk func(fd protoreflect.FileDescriptor)
@@ -43,6 +56,10 @@ func runGenerator(opts *resource.Options, files ...protoreflect.FileDescriptor) 
 	for _, fd := range files {
 		walk(fd)
 		req.FileToGenerate = append(req.FileToGenerate, fd.Path())
+	}
+	for _, fdp := range extra {
+		req.ProtoFile = append(req.ProtoFile, fdp)
+		req.FileToGenerate = append(req.FileToGenerate, fdp.GetName())
 	}
 	plugin, err := protogen.Options{}.New(req)
 	if err != nil {
@@ -142,7 +159,7 @@ var _ = Describe("resource.Generate", func() {
 
 		out := fileByName(resp, "namefield/namefield_aip.pb.resource.go")
 		Expect(out).To(ContainSubstring("func (x *Person) ParsePersonName() (PersonName, error)"))
-		Expect(out).To(ContainSubstring("return ParsePersonName(x.PersonName)"))
+		Expect(out).To(ContainSubstring("return ParsePersonName(x.GetPersonName())"))
 	})
 
 	It("emits parsers for file-level resource_definition without a message", func() {
@@ -188,6 +205,9 @@ var _ = Describe("resource.Generate", func() {
 			{externalpb.File_external_external_proto, "external/external_aip.pb.resource.go"},
 			{refpb.File_reference_reference_proto, "reference/reference_aip.pb.resource.go"},
 			{uuidpb.File_uuid_uuid_proto, "uuid/uuid_aip.pb.resource.go"},
+			{editionspb.File_editions_editions_proto, "editions/editions_aip.pb.resource.go"},
+			{v1pb.File_versions_v1_library_proto, "versions/v1/library_aip.pb.resource.go"},
+			{v2pb.File_versions_v2_library_proto, "versions/v2/library_aip.pb.resource.go"},
 		}
 		for _, tc := range cases {
 			resp, err := runGenerator(nil, tc.fd)
@@ -258,7 +278,7 @@ var _ = Describe("resource.Generate validation", func() {
 		Expect(err).NotTo(HaveOccurred())
 		out := fileByName(resp, "simple/simple_aip.pb.resource.go")
 		Expect(out).To(ContainSubstring("func (x *Thing) ParseFullName() (ThingName, error)"))
-		Expect(out).To(ContainSubstring("return ParseFullThingName(x.Name)"))
+		Expect(out).To(ContainSubstring("return ParseFullThingName(x.GetName())"))
 	})
 })
 
@@ -284,5 +304,85 @@ var _ = Describe("resource.Generate UUID segments", func() {
 		Expect(out).To(ContainSubstring("OrganizationID: n.OrganizationID,"))
 		Expect(out).To(ContainSubstring("OrganizationID uuid.UUID"))
 		Expect(out).To(ContainSubstring("ItemID         uuid.UUID"))
+	})
+})
+
+// readerReferencing builds a file in a third package whose Reader.shelf
+// references resourceType, which that package does not declare.
+func readerReferencing(resourceType string) *descriptorpb.FileDescriptorProto {
+	opts := &descriptorpb.FieldOptions{}
+	proto.SetExtension(opts, annotations.E_ResourceReference, &annotations.ResourceReference{Type: resourceType})
+	return &descriptorpb.FileDescriptorProto{
+		Name:       proto.String("versions/reader/reader.proto"),
+		Package:    proto.String("tests.versions.reader"),
+		Syntax:     proto.String("proto3"),
+		Dependency: []string{"google/api/resource.proto"},
+		Options: &descriptorpb.FileOptions{
+			GoPackage: proto.String("github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/versions/reader"),
+		},
+		MessageType: []*descriptorpb.DescriptorProto{{
+			Name: proto.String("Reader"),
+			Field: []*descriptorpb.FieldDescriptorProto{{
+				Name:     proto.String("shelf"),
+				JsonName: proto.String("shelf"),
+				Number:   proto.Int32(1),
+				Type:     descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
+				Label:    descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+				Options:  opts,
+			}},
+		}},
+	}
+}
+
+var _ = Describe("resource.Generate across packages declaring one type", func() {
+	It("binds each version's references and parents to its own declarations", func() {
+		resp, err := runGenerator(nil, v1pb.File_versions_v1_library_proto, v2pb.File_versions_v2_library_proto)
+		Expect(err).NotTo(HaveOccurred())
+		v1 := fileByName(resp, "versions/v1/library_aip.pb.resource.go")
+		// v1 names its own ShelfName unqualified, and never imports v2.
+		Expect(v1).To(ContainSubstring("func (x *Book) ParseShelf() (ShelfName, error)"))
+		Expect(v1).To(ContainSubstring("func (n BookName) Parent() ShelfName"))
+		Expect(v1).NotTo(ContainSubstring("versions/v2"))
+		// Only v2's create request types Shelf's ID as a UUID; v1 keeps a string.
+		Expect(v1).NotTo(ContainSubstring("uuid"))
+		Expect(fileByName(resp, "versions/v2/library_aip.pb.resource.go")).To(ContainSubstring("ShelfID uuid.UUID"))
+	})
+
+	It("errors on a reference only other packages declare, naming them", func() {
+		_, err := runGeneratorWith(nil, []*descriptorpb.FileDescriptorProto{readerReferencing("versions.example.com/Shelf")},
+			v1pb.File_versions_v1_library_proto, v2pb.File_versions_v2_library_proto)
+		Expect(err).To(MatchError(ContainSubstring(`reference to type "versions.example.com/Shelf" is ambiguous`)))
+		Expect(err.Error()).To(ContainSubstring("tests.versions.v1"))
+		Expect(err.Error()).To(ContainSubstring("tests.versions.v2"))
+	})
+
+	It("skips the ambiguous reference with allow_unresolved_refs", func() {
+		_, err := runGeneratorWith(&resource.Options{AllowUnresolvedRefs: true},
+			[]*descriptorpb.FileDescriptorProto{readerReferencing("versions.example.com/Shelf")},
+			v1pb.File_versions_v1_library_proto, v2pb.File_versions_v2_library_proto)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("falls back to the one package that declares a type", func() {
+		resp, err := runGeneratorWith(nil, []*descriptorpb.FileDescriptorProto{readerReferencing("versions.example.com/Shelf")},
+			v2pb.File_versions_v2_library_proto)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fileByName(resp, "versions/reader/reader_aip.pb.resource.go")).To(ContainSubstring("ParseShelf() (v2.ShelfName, error)"))
+	})
+})
+
+var _ = Describe("resource.Generate editions and Batch Get", func() {
+	It("reads explicit-presence fields through their getters", func() {
+		resp, err := runGenerator(nil, editionspb.File_editions_editions_proto)
+		Expect(err).NotTo(HaveOccurred())
+		got := fileByName(resp, "editions/editions_aip.pb.resource.go")
+		Expect(got).To(ContainSubstring("ParseGadgetName(x.GetName())"))
+		Expect(got).To(ContainSubstring("ParseGadgetName(x.GetTwin())"))
+	})
+
+	It("generates nothing for a repeated resource_reference instead of failing", func() {
+		resp, err := runGenerator(nil, editionspb.File_editions_editions_proto)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fileByName(resp, "editions/editions_aip.pb.resource.go")).NotTo(ContainSubstring("BatchGetGadgetsRequest"))
 	})
 })

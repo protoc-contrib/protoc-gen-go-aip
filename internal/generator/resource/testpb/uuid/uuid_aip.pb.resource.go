@@ -311,32 +311,32 @@ func (n OrganizationName) ItemName(
 
 // ParseName parses x.Name as CollectionName.
 func (x *Collection) ParseName() (CollectionName, error) {
-	return ParseCollectionName(x.Name)
+	return ParseCollectionName(x.GetName())
 }
 
 // ParseFullName parses x.Name as CollectionName.
 func (x *Collection) ParseFullName() (CollectionName, error) {
-	return ParseFullCollectionName(x.Name)
+	return ParseFullCollectionName(x.GetName())
 }
 
 // ParseName parses x.Name as OrganizationName.
 func (x *Organization) ParseName() (OrganizationName, error) {
-	return ParseOrganizationName(x.Name)
+	return ParseOrganizationName(x.GetName())
 }
 
 // ParseFullName parses x.Name as OrganizationName.
 func (x *Organization) ParseFullName() (OrganizationName, error) {
-	return ParseFullOrganizationName(x.Name)
+	return ParseFullOrganizationName(x.GetName())
 }
 
 // ParseName parses x.Name as ItemName.
 func (x *Item) ParseName() (ItemName, error) {
-	return ParseItemName(x.Name)
+	return ParseItemName(x.GetName())
 }
 
 // ParseFullName parses x.Name as ItemName.
 func (x *Item) ParseFullName() (ItemName, error) {
-	return ParseFullItemName(x.Name)
+	return ParseFullItemName(x.GetName())
 }
 
 // ParseCollectionID returns the ID the caller proposed for the "example.com/Collection"

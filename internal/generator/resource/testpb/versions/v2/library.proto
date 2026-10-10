@@ -1,0 +1,36 @@
+// v2 of an API that declares the same resource types as its other version.
+// Each version's references, parents and create requests must bind to its
+// own declarations: only v2 types Shelf's ID as a UUID, so a v1 type bound to
+// v2's (or the reverse) would not compile.
+syntax = "proto3";
+
+package tests.versions.v2;
+
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/versions/v2";
+
+import "google/api/field_info.proto";
+import "google/api/resource.proto";
+
+message Shelf {
+  option (google.api.resource) = {
+    type: "versions.example.com/Shelf"
+    pattern: "shelves/{shelf}"
+  };
+
+  string name = 1;
+}
+
+message Book {
+  option (google.api.resource) = {
+    type: "versions.example.com/Book"
+    pattern: "shelves/{shelf}/books/{book}"
+  };
+
+  string name = 1;
+  string shelf = 2 [(google.api.resource_reference) = { type: "versions.example.com/Shelf" }];
+}
+
+message CreateShelfRequest {
+  Shelf shelf = 1;
+  string shelf_id = 2 [(google.api.field_info).format = UUID4];
+}

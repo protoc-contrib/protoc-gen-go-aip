@@ -57,52 +57,112 @@ func Generate(plugin *protogen.Plugin, opts *Options) error {
 // fields can resolve to their referent across package boundaries), and by
 // the owning message (so collectReferences doesn't have to re-parse the
 // google.api.resource annotation).
+//
+// One resource type may be declared in several packages — v1 and v2 of the
+// same API both declaring "library.example.com/Book" — so every lookup by
+// type, pattern or create request prefers the asking package's own
+// declaration, and falls back to another package only when exactly one
+// declares it.
 type registry struct {
 	byFile    map[*protogen.File][]*resource
-	byType    map[resourceType]*resource
+	byType    map[resourceType][]*resource
 	byMessage map[*protogen.Message]*resource
 	// createRequests indexes top- and nested-level messages whose proto name
-	// matches "Create<TypeName>Request" (AIP-133). The annotator reads
-	// google.api.field_info off the request's <seg>_id field to decide whether
-	// a pattern variable is typed as uuid.UUID. Last-writer-wins on name
-	// collisions across files — AIP-133 uses one Create request per resource
-	// type, so a collision indicates a user-side mistake we don't try to
-	// diagnose here.
-	createRequests map[string]*protogen.Message
+	// matches "Create<TypeName>Request" (AIP-133), by that name. The annotator
+	// reads google.api.field_info off the request's <seg>_id field to decide
+	// whether a pattern variable is typed as uuid.UUID.
+	createRequests map[string][]*protogen.Message
 	all            []*resource // insertion order for deterministic lookups
 }
 
 func newRegistry() *registry {
 	return &registry{
 		byFile:         map[*protogen.File][]*resource{},
-		byType:         map[resourceType]*resource{},
+		byType:         map[resourceType][]*resource{},
 		byMessage:      map[*protogen.Message]*resource{},
-		createRequests: map[string]*protogen.Message{},
+		createRequests: map[string][]*protogen.Message{},
 	}
 }
 
 func (r *registry) insert(f *protogen.File, res *resource) {
 	res.File = f
 	r.byFile[f] = append(r.byFile[f], res)
-	r.byType[res.Type] = res
+	r.byType[res.Type] = append(r.byType[res.Type], res)
 	r.all = append(r.all, res)
 	if res.Message != nil {
 		r.byMessage[res.Message] = res
 	}
 }
 
+// packageOf is the proto package a resource is declared in, or "" for one
+// inserted without a file.
+func packageOf(res *resource) protoreflect.FullName {
+	if res.File == nil {
+		return ""
+	}
+	return res.File.Desc.Package()
+}
+
+// preferPackage picks, among candidates, the first declared in pkg; failing
+// that, the only candidate. It reports ambiguous when several packages
+// declare it and none is pkg.
+func preferPackage[T any](candidates []T, pkg protoreflect.FullName, packageOf func(T) protoreflect.FullName) (picked T, found, ambiguous bool) {
+	for _, c := range candidates {
+		if packageOf(c) == pkg {
+			return c, true, false
+		}
+	}
+	switch len(candidates) {
+	case 0:
+		return picked, false, false
+	case 1:
+		return candidates[0], true, false
+	default:
+		return picked, false, true
+	}
+}
+
+// lookupType resolves a resource type as seen from pkg. ambiguous means
+// several other packages declare it and pkg does not.
+func (r *registry) lookupType(rt resourceType, pkg protoreflect.FullName) (res *resource, found, ambiguous bool) {
+	return preferPackage(r.byType[rt], pkg, packageOf)
+}
+
+// createRequest returns the Create<TypeName>Request a resource in pkg is
+// created by: pkg's own, and only pkg's. Unlike a reference, a create request
+// never falls back to another package — with v1 and v2 both declaring Shelf,
+// v2's CreateShelfRequest says nothing about what v1's Shelf IDs are.
+func (r *registry) createRequest(typeName string, pkg protoreflect.FullName) (*protogen.Message, bool) {
+	for _, req := range r.createRequests["Create"+typeName+"Request"] {
+		if req.Desc.ParentFile().Package() == pkg {
+			return req, true
+		}
+	}
+	return nil, false
+}
+
 // findByPattern returns the resource (and matching pattern index) whose
-// pattern exactly matches p — same segments, same variable names. Iteration
-// is in insertion order to keep generation deterministic.
-func (r *registry) findByPattern(p pattern) (*resource, int, bool) {
+// pattern exactly matches p — same segments, same variable names — as seen
+// from pkg: pkg's own declaration first, else the only one. Iteration is in
+// insertion order to keep generation deterministic.
+func (r *registry) findByPattern(p pattern, pkg protoreflect.FullName) (*resource, int, bool) {
+	type match struct {
+		res *resource
+		idx int
+	}
+	var matches []match
 	for _, res := range r.all {
 		for i, rp := range res.Patterns {
 			if patternsEqual(rp, p) {
-				return res, i, true
+				matches = append(matches, match{res, i})
 			}
 		}
 	}
-	return nil, 0, false
+	m, found, _ := preferPackage(matches, pkg, func(m match) protoreflect.FullName { return packageOf(m.res) })
+	if !found {
+		return nil, 0, false
+	}
+	return m.res, m.idx, true
 }
 
 // patternsEqual compares two patterns by structure (segment names and whether
@@ -142,7 +202,7 @@ func (r *registry) walkFile(f *protogen.File) error {
 			}
 			name := string(m.Desc.Name())
 			if strings.HasPrefix(name, "Create") && strings.HasSuffix(name, "Request") {
-				r.createRequests[name] = m
+				r.createRequests[name] = append(r.createRequests[name], m)
 			}
 			if err := walk(m.Messages); err != nil {
 				return err
@@ -167,11 +227,11 @@ func (r *registry) annotateFormats() {
 				if !seg.Var {
 					continue
 				}
-				owner, _, ok := r.findByPattern(p[:si+1])
+				owner, _, ok := r.findByPattern(p[:si+1], packageOf(res))
 				if !ok {
 					continue
 				}
-				crMsg, ok := r.createRequests["Create"+owner.Type.TypeName+"Request"]
+				crMsg, ok := r.createRequest(owner.Type.TypeName, packageOf(owner))
 				if !ok {
 					continue
 				}
@@ -251,11 +311,11 @@ func collectCreateIDs(f *protogen.File, reg *registry) []createID {
 		if !ok || seg.Format != formatUUID4 {
 			continue
 		}
-		req, ok := reg.createRequests["Create"+res.Type.TypeName+"Request"]
+		req, ok := reg.createRequest(res.Type.TypeName, packageOf(res))
 		if !ok || req.Desc.ParentFile().Path() != f.Desc.Path() {
 			continue
 		}
-		if res.File == nil || req.Desc.ParentFile().Package() != res.File.Desc.Package() {
+		if res.File == nil || req.Desc.ParentFile().Package() != packageOf(res) {
 			continue
 		}
 		for _, field := range req.Fields {
@@ -322,7 +382,7 @@ func emitCreateID(g *protogen.GeneratedFile, c createID) {
 // one struct per pattern plus a sealed interface and a polymorphic parser.
 func emitResource(g *protogen.GeneratedFile, r *resource, reg *registry) error {
 	if len(r.Patterns) == 1 {
-		parent, err := lookupParent(r.Patterns[0], reg)
+		parent, err := lookupParent(r.Patterns[0], packageOf(r), reg)
 		if err != nil {
 			return err
 		}
@@ -337,7 +397,7 @@ func emitResource(g *protogen.GeneratedFile, r *resource, reg *registry) error {
 	for i, p := range r.Patterns {
 		typeName := typeNames[i]
 		funcName := "Parse" + typeName
-		parent, err := lookupParent(p, reg)
+		parent, err := lookupParent(p, packageOf(r), reg)
 		if err != nil {
 			return err
 		}
@@ -407,7 +467,7 @@ func variantNames(r *resource, reg *registry) []string {
 		if !ok {
 			continue
 		}
-		parentRes, _, found := reg.findByPattern(parentP)
+		parentRes, _, found := reg.findByPattern(parentP, packageOf(r))
 		if !found {
 			continue
 		}
@@ -443,12 +503,12 @@ type parentBinding struct {
 	Pattern pattern
 }
 
-func lookupParent(p pattern, reg *registry) (*parentBinding, error) {
+func lookupParent(p pattern, pkg protoreflect.FullName, reg *registry) (*parentBinding, error) {
 	parentP, ok := parentPattern(p)
 	if !ok {
 		return nil, nil
 	}
-	parentRes, idx, found := reg.findByPattern(parentP)
+	parentRes, idx, found := reg.findByPattern(parentP, pkg)
 	if !found {
 		return nil, nil
 	}
@@ -463,7 +523,7 @@ func lookupParent(p pattern, reg *registry) (*parentBinding, error) {
 		if ps.Format != p[i].Format {
 			return nil, fmt.Errorf(
 				"resource %q: segment %q format (%s) disagrees with parent %q (%s); annotate %s_id consistently on both messages",
-				resourceTypeString(reg, p), ps.Name, p[i].Format, resourceTypeString(reg, matched), ps.Format, ps.Name,
+				resourceTypeString(reg, p, pkg), ps.Name, p[i].Format, resourceTypeString(reg, matched, pkg), ps.Format, ps.Name,
 			)
 		}
 	}
@@ -485,8 +545,8 @@ func lookupParent(p pattern, reg *registry) (*parentBinding, error) {
 // owns pattern p, used in error messages. Falls back to the pattern string
 // when no resource matches (shouldn't happen for patterns coming out of the
 // registry).
-func resourceTypeString(reg *registry, p pattern) string {
-	if res, _, ok := reg.findByPattern(p); ok {
+func resourceTypeString(reg *registry, p pattern, pkg protoreflect.FullName) string {
+	if res, _, ok := reg.findByPattern(p, pkg); ok {
 		return res.Type.ServiceName + "/" + res.Type.TypeName
 	}
 	return patternString(p)
@@ -944,17 +1004,28 @@ func fieldReference(field *protogen.Field, reg *registry, opts *Options) (refere
 	if rr.Type == "" || rr.Type == "*" {
 		return reference{}, false, nil
 	}
+	// A repeated field of names — AIP-231 Batch Get's `names` — or any field
+	// that is not a singular string carries no single name to parse. The
+	// annotation is legal; there is just nothing to emit for it.
 	if field.Desc.Kind() != protoreflect.StringKind || field.Desc.IsList() || field.Desc.IsMap() {
-		return reference{}, false, fmt.Errorf("%v: resource_reference must be on a singular string field", field.GoIdent)
+		return reference{}, false, nil
 	}
 	rt, err := newResourceType(rr.Type)
 	if err != nil {
 		return reference{}, false, fmt.Errorf("%v: resource reference: %w", field.GoIdent, err)
 	}
-	res, ok := reg.byType[rt]
+	pkg := field.Parent.Desc.ParentFile().Package()
+	res, ok, ambiguous := reg.lookupType(rt, pkg)
 	if !ok {
 		if opts.AllowUnresolvedRefs {
 			return reference{}, false, nil
+		}
+		if ambiguous {
+			var packages []string
+			for _, candidate := range reg.byType[rt] {
+				packages = append(packages, string(packageOf(candidate)))
+			}
+			return reference{}, false, fmt.Errorf("%v: reference to type %q is ambiguous: declared in %s, none of them %s (set allow_unresolved_refs=true to skip)", field.GoIdent, rr.Type, strings.Join(packages, ", "), pkg)
 		}
 		return reference{}, false, fmt.Errorf("%v: reference to unknown type %q (set allow_unresolved_refs=true to skip)", field.GoIdent, rr.Type)
 	}
@@ -970,7 +1041,10 @@ func fieldReference(field *protogen.Field, reg *registry, opts *Options) (refere
 func emitReference(g *protogen.GeneratedFile, ref reference) {
 	g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, ".")
 	g.P("func (x *", ref.Owner.GoIdent, ") ", ref.MethodName, "() (", ref.ParsedType, ", error) {")
-	g.P("return ", ref.ParseFunc, "(x.", ref.FieldName, ")")
+	// The getter, not the field: an explicit-presence field — proto2
+	// `optional`, editions' default — is a *string, and the opaque API has no
+	// exported field at all.
+	g.P("return ", ref.ParseFunc, "(x.Get", ref.FieldName, "())")
 	g.P("}")
 	g.P()
 }

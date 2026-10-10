@@ -174,40 +174,40 @@ func (n BarName) ContainsWildcard() bool {
 
 // ParseName parses x.Name as FooName.
 func (x *Foo) ParseName() (FooName, error) {
-	return ParseFooName(x.Name)
+	return ParseFooName(x.GetName())
 }
 
 // ParseFullName parses x.Name as FooName.
 func (x *Foo) ParseFullName() (FooName, error) {
-	return ParseFullFooName(x.Name)
+	return ParseFullFooName(x.GetName())
 }
 
 // ParseBar parses x.Bar as BarName.
 func (x *Foo) ParseBar() (BarName, error) {
-	return ParseBarName(x.Bar)
+	return ParseBarName(x.GetBar())
 }
 
 // ParseName parses x.Name as BarName.
 func (x *Bar) ParseName() (BarName, error) {
-	return ParseBarName(x.Name)
+	return ParseBarName(x.GetName())
 }
 
 // ParseFullName parses x.Name as BarName.
 func (x *Bar) ParseFullName() (BarName, error) {
-	return ParseFullBarName(x.Name)
+	return ParseFullBarName(x.GetName())
 }
 
 // ParseFoo parses x.Foo as FooName.
 func (x *Bar) ParseFoo() (FooName, error) {
-	return ParseFooName(x.Foo)
+	return ParseFooName(x.GetFoo())
 }
 
 // ParseThingName parses x.ThingName as ThingName.
 func (x *CrossPackage) ParseThingName() (simple.ThingName, error) {
-	return simple.ParseThingName(x.ThingName)
+	return simple.ParseThingName(x.GetThingName())
 }
 
 // ParseExternalName parses x.ExternalName as ExternalName.
 func (x *CrossPackageExternal) ParseExternalName() (external.ExternalName, error) {
-	return external.ParseExternalName(x.ExternalName)
+	return external.ParseExternalName(x.GetExternalName())
 }

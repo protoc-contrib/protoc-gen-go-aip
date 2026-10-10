@@ -91,10 +91,10 @@ func (n BookName) ContainsWildcard() bool {
 
 // ParseName parses x.Name as BookName.
 func (x *Book) ParseName() (BookName, error) {
-	return ParseBookName(x.Name)
+	return ParseBookName(x.GetName())
 }
 
 // ParseFullName parses x.Name as BookName.
 func (x *Book) ParseFullName() (BookName, error) {
-	return ParseFullBookName(x.Name)
+	return ParseFullBookName(x.GetName())
 }

@@ -48,12 +48,17 @@ package:
   the child type that builds the child by inheriting parent fields and
   taking only the child-only segments as arguments
   (e.g. `parent.ProjectThingName(thingID)`).
-- **Resource references** — every field annotated with
+- **Resource references** — every singular string field annotated with
   `google.api.resource_reference` (including cross-package references)
   gains a `Parse<Field>()` method on the owning message that delegates to
-  the referent's parser. Set the plugin option
-  `allow_unresolved_refs=true` to skip references whose target type
-  isn't in the compilation unit.
+  the referent's parser, reading the field through its getter so
+  explicit-presence fields (proto2 `optional`, edition 2023) work. A
+  repeated reference — AIP-231 Batch Get's `names` — and `type: "*"` are
+  skipped. A type declared in several packages (v1 and v2 of one API)
+  resolves to the referring package's own declaration, else to the only
+  package declaring it; several candidates and none local is an error.
+  Set the plugin option `allow_unresolved_refs=true` to skip references
+  whose target type isn't in the compilation unit, or is ambiguous.
 - **`Validate()` / `Type()` / `Pattern()` / `ContainsWildcard()`** —
   every generated struct exposes these AIP-122/159 helpers (adopted from
   einride's plugin).
@@ -86,10 +91,18 @@ package:
 
 ### Query pass
 
-A request is a List request when a service method takes it and returns a
-message with a single repeated message field; that field's type is the
-resource. For every List request with a `string filter` field, the plugin
-emits:
+A request is a List request when all of these hold — the same rule
+`protoc-gen-rust-aip` applies:
+
+- a service **in the same `.proto` file** has a method, neither client- nor
+  server-streaming, that takes it;
+- that method's response has **exactly one** repeated message field (a map
+  does not count), whose type is the resource;
+- the request is a **top-level** message of that file — nested messages are
+  not considered — with a singular `string filter` field;
+- the resource has at least one field with a CEL type.
+
+For each, the plugin emits:
 
 - **`<Request>FilterEnv`** — a `*cel.Env` declaring every resource field
   that has a CEL type (strings, numbers, bools, enums as ints,
@@ -224,7 +237,7 @@ protoc \
 
 | Option                  | Default | Effect                                                                                                                  |
 | ----------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `allow_unresolved_refs` | `false` | When `true`, `google.api.resource_reference` fields whose target type is not in the compilation unit are skipped silently rather than producing a codegen error. |
+| `allow_unresolved_refs` | `false` | When `true`, `google.api.resource_reference` fields whose target type is not in the compilation unit, or is declared only in several other packages, are skipped silently rather than producing a codegen error. |
 
 ## Migration
 

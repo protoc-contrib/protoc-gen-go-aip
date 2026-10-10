@@ -91,10 +91,10 @@ func (n PersonName) ContainsWildcard() bool {
 
 // ParsePersonName parses x.PersonName as PersonName.
 func (x *Person) ParsePersonName() (PersonName, error) {
-	return ParsePersonName(x.PersonName)
+	return ParsePersonName(x.GetPersonName())
 }
 
 // ParseFullPersonName parses x.PersonName as PersonName.
 func (x *Person) ParseFullPersonName() (PersonName, error) {
-	return ParseFullPersonName(x.PersonName)
+	return ParseFullPersonName(x.GetPersonName())
 }
