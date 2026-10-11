@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/pluginpb"
 
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource"
+	crosspb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/crosspackage"
 	editionspb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/editions"
 	externalpb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/external"
 	multipb "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/multipattern"
@@ -121,6 +122,18 @@ var _ = Describe("resource.Generate", func() {
 		Expect(out).To(ContainSubstring("ProjectID: n.ProjectID,"))
 		// Top-level resources have no parent → no Parent method.
 		Expect(out).NotTo(ContainSubstring("func (n ThingName) Parent()"))
+		// The parent is in the same package, so it gains the child builder.
+		Expect(out).To(ContainSubstring("func (n ProjectName) ProjectThingName("))
+	})
+
+	It("skips the parent builder when the parent lives in another Go package", func() {
+		resp, err := runGenerator(nil, crosspb.File_crosspackage_crosspackage_proto)
+		Expect(err).NotTo(HaveOccurred())
+		out := fileByName(resp, "crosspackage/crosspackage_aip.pb.resource.go")
+		Expect(out).To(ContainSubstring("func (n GadgetName) Parent() simple.ProjectName {"))
+		// A method on simple.ProjectName can't be declared from this package.
+		Expect(out).NotTo(ContainSubstring("func (n ProjectName)"))
+		Expect(out).NotTo(ContainSubstring(") GadgetName("))
 	})
 
 	It("emits one struct per pattern plus a sealed interface for multi-pattern resources", func() {
@@ -136,6 +149,12 @@ var _ = Describe("resource.Generate", func() {
 		Expect(out).To(ContainSubstring("mustEmbedBookName()"))
 		// The sealed interface includes String() so it satisfies fmt.Stringer.
 		Expect(out).To(MatchRegexp(`type BookName interface \{[^}]*String\(\) string`))
+		// ...and every helper the variant structs share, so a parsed name can
+		// be validated without a type switch.
+		Expect(out).To(MatchRegexp(`type BookName interface \{[^}]*Validate\(\) error`))
+		Expect(out).To(MatchRegexp(`type BookName interface \{[^}]*Type\(\) string`))
+		Expect(out).To(MatchRegexp(`type BookName interface \{[^}]*Pattern\(\) string`))
+		Expect(out).To(MatchRegexp(`type BookName interface \{[^}]*ContainsWildcard\(\) bool`))
 		Expect(out).To(ContainSubstring("func ParseBookName(s string) (BookName, error)"))
 		Expect(out).To(ContainSubstring("func ParseFullBookName(s string) (BookName, error)"))
 		Expect(out).To(ContainSubstring("func ParsePublisherBookName(s string) (PublisherBookName, error)"))
@@ -208,6 +227,7 @@ var _ = Describe("resource.Generate", func() {
 			{editionspb.File_editions_editions_proto, "editions/editions_aip.pb.resource.go"},
 			{v1pb.File_versions_v1_library_proto, "versions/v1/library_aip.pb.resource.go"},
 			{v2pb.File_versions_v2_library_proto, "versions/v2/library_aip.pb.resource.go"},
+			{crosspb.File_crosspackage_crosspackage_proto, "crosspackage/crosspackage_aip.pb.resource.go"},
 		}
 		for _, tc := range cases {
 			resp, err := runGenerator(nil, tc.fd)
@@ -384,5 +404,73 @@ var _ = Describe("resource.Generate editions and Batch Get", func() {
 		resp, err := runGenerator(nil, editionspb.File_editions_editions_proto)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fileByName(resp, "editions/editions_aip.pb.resource.go")).NotTo(ContainSubstring("BatchGetGadgetsRequest"))
+	})
+})
+
+// resourceMessage builds a message declaring resourceType with pattern, whose
+// name field has the given type and label.
+func resourceMessage(name, resourceType, pattern string, nameType descriptorpb.FieldDescriptorProto_Type, nameLabel descriptorpb.FieldDescriptorProto_Label) *descriptorpb.DescriptorProto {
+	opts := &descriptorpb.MessageOptions{}
+	proto.SetExtension(opts, annotations.E_Resource, &annotations.ResourceDescriptor{
+		Type:    resourceType,
+		Pattern: []string{pattern},
+	})
+	return &descriptorpb.DescriptorProto{
+		Name:    proto.String(name),
+		Options: opts,
+		Field: []*descriptorpb.FieldDescriptorProto{{
+			Name:     proto.String("name"),
+			JsonName: proto.String("name"),
+			Number:   proto.Int32(1),
+			Type:     nameType.Enum(),
+			Label:    nameLabel.Enum(),
+		}},
+	}
+}
+
+// schemaFile wraps messages in a proto3 file of package tests.schema.
+func schemaFile(path string, messages ...*descriptorpb.DescriptorProto) *descriptorpb.FileDescriptorProto {
+	return &descriptorpb.FileDescriptorProto{
+		Name:       proto.String(path),
+		Package:    proto.String("tests.schema"),
+		Syntax:     proto.String("proto3"),
+		Dependency: []string{"google/api/resource.proto"},
+		Options: &descriptorpb.FileOptions{
+			GoPackage: proto.String("github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/schema"),
+		},
+		MessageType: messages,
+	}
+}
+
+var _ = Describe("resource.Generate schema errors", func() {
+	const (
+		str      = descriptorpb.FieldDescriptorProto_TYPE_STRING
+		optional = descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL
+	)
+
+	It("errors when one package declares a resource type twice, naming both files", func() {
+		_, err := runGeneratorWith(nil, []*descriptorpb.FileDescriptorProto{
+			schemaFile("schema/a.proto", resourceMessage("Widget", "example.com/Widget", "widgets/{widget}", str, optional)),
+			schemaFile("schema/b.proto", resourceMessage("OtherWidget", "example.com/Widget", "widgets/{widget}", str, optional)),
+		}, simplepb.File_simple_simple_proto)
+		Expect(err).To(MatchError(ContainSubstring(`resource type "example.com/Widget" is declared twice in package "tests.schema"`)))
+		Expect(err.Error()).To(ContainSubstring("schema/a.proto"))
+		Expect(err.Error()).To(ContainSubstring("schema/b.proto"))
+	})
+
+	It("errors when the name field is not a string", func() {
+		_, err := runGeneratorWith(nil, []*descriptorpb.FileDescriptorProto{
+			schemaFile("schema/a.proto", resourceMessage("Widget", "example.com/Widget", "widgets/{widget}",
+				descriptorpb.FieldDescriptorProto_TYPE_INT64, optional)),
+		}, simplepb.File_simple_simple_proto)
+		Expect(err).To(MatchError(ContainSubstring(`field "name" holds the resource name, so it must be a singular string`)))
+	})
+
+	It("errors when the name field is repeated", func() {
+		_, err := runGeneratorWith(nil, []*descriptorpb.FileDescriptorProto{
+			schemaFile("schema/a.proto", resourceMessage("Widget", "example.com/Widget", "widgets/{widget}",
+				str, descriptorpb.FieldDescriptorProto_LABEL_REPEATED)),
+		}, simplepb.File_simple_simple_proto)
+		Expect(err).To(MatchError(ContainSubstring("must be a singular string")))
 	})
 })

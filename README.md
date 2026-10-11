@@ -40,14 +40,17 @@ package:
 - **Multi-pattern resources** — emits a sealed `<Type>Name` interface
   and one struct per pattern named after its parent
   (e.g. `PublisherBookName`, `AuthorBookName`), plus a polymorphic
-  `Parse<Type>Name` that tries each pattern in declaration order.
+  `Parse<Type>Name` that tries each pattern in declaration order. The
+  interface carries `Validate()`, `Type()`, `Pattern()` and
+  `ContainsWildcard()` too, so a parsed name needs no type switch.
 - **`Parent()` navigation** — child resources get a `Parent()` method
   returning the matched parent's generated type. Each pattern of a
   multi-pattern resource returns its own parent type.
 - **Parent constructors** — the parent struct gains a method named after
   the child type that builds the child by inheriting parent fields and
   taking only the child-only segments as arguments
-  (e.g. `parent.ProjectThingName(thingID)`).
+  (e.g. `parent.ProjectThingName(thingID)`). Skipped when the parent is in
+  another Go package, which Go can't add a method to; `Parent()` still works.
 - **Resource references** — every singular string field annotated with
   `google.api.resource_reference` (including cross-package references)
   gains a `Parse<Field>()` method on the owning message that delegates to
@@ -56,7 +59,8 @@ package:
   repeated reference — AIP-231 Batch Get's `names` — and `type: "*"` are
   skipped. A type declared in several packages (v1 and v2 of one API)
   resolves to the referring package's own declaration, else to the only
-  package declaring it; several candidates and none local is an error.
+  package declaring it; several candidates and none local is an error, and
+  so is one package declaring the same type twice.
   Set the plugin option `allow_unresolved_refs=true` to skip references
   whose target type isn't in the compilation unit, or is ambiguous.
 - **`Validate()` / `Type()` / `Pattern()` / `ContainsWildcard()`** —

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package tests.crosspackage;
+
+option go_package = "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/crosspackage";
+
+import "google/api/resource.proto";
+import "simple/simple.proto";
+
+// Gadget is nested under simple.Project, which lives in another Go package.
+// Parent() can return simple.ProjectName, but the ProjectName.GadgetName
+// builder cannot be emitted: Go does not allow adding a method to a type
+// from another package.
+message Gadget {
+  option (google.api.resource) = {
+    type: "example.com/Gadget"
+    pattern: "projects/{project}/gadgets/{gadget}"
+  };
+
+  string name = 1;
+}

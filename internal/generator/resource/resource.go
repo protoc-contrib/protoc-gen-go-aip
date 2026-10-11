@@ -7,6 +7,7 @@ import (
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -52,6 +53,11 @@ func newMessageResource(m *protogen.Message) (*resource, error) {
 	}
 	if r.NameField == nil {
 		return nil, fmt.Errorf("%v specifies %q as name field, but no field with that name exists", m.GoIdent, fieldName)
+	}
+	// ParseName passes the field's getter to a func(string), so anything else
+	// would only fail later, as a compile error in the generated code.
+	if r.NameField.Desc.Kind() != protoreflect.StringKind || r.NameField.Desc.IsList() || r.NameField.Desc.IsMap() {
+		return nil, fmt.Errorf("%v: field %q holds the resource name, so it must be a singular string", m.GoIdent, fieldName)
 	}
 	return r, nil
 }
