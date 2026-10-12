@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.2.1...v0.2.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* skip cross-package parent builders, reject ambiguous schemas, widen the multi-pattern interface ([#62](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/62)) ([5fdc837](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/5fdc8377e8cf05b756ae472a6963260eeb47b64a))
+
 ## [0.2.1](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.2.0...v0.2.1) (2026-10-10)
 
 
