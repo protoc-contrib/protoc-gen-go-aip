@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/crosspackage"
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/external"
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/multipattern"
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/namefield"
@@ -205,6 +206,41 @@ func TestMultiPattern_Name(t *testing.T) {
 	}
 	if got, want := n.FullName(), "//example.com/authors/a/books/b"; got != want {
 		t.Fatalf("FullName: got %q, want %q", got, want)
+	}
+	if got, want := n.Type(), "example.com/Book"; got != want {
+		t.Fatalf("Type: got %q, want %q", got, want)
+	}
+	if got, want := n.Pattern(), "authors/{author}/books/{book}"; got != want {
+		t.Fatalf("Pattern: got %q, want %q", got, want)
+	}
+}
+
+// TestMultiPattern_ValidateThroughInterface checks that a multi-pattern name
+// can be validated and wildcard-tested without a type switch.
+func TestMultiPattern_ValidateThroughInterface(t *testing.T) {
+	var n multipattern.BookName = multipattern.PublisherBookName{PublisherID: "p", BookID: "b"}
+	if err := n.Validate(); err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+	if n.ContainsWildcard() {
+		t.Fatal("ContainsWildcard: got true for a name without one")
+	}
+
+	n = multipattern.PublisherBookName{PublisherID: "-", BookID: ""}
+	if err := n.Validate(); err == nil {
+		t.Fatal("Validate: expected an error for an empty segment")
+	}
+	if !n.ContainsWildcard() {
+		t.Fatal("ContainsWildcard: got false for a wildcard publisher")
+	}
+}
+
+// TestCrossPackage_Parent checks that a child resource nested under a parent
+// from another Go package compiles and returns that package's type.
+func TestCrossPackage_Parent(t *testing.T) {
+	n := crosspackage.GadgetName{ProjectID: "p", GadgetID: "g"}
+	if got := n.Parent(); got != (simple.ProjectName{ProjectID: "p"}) {
+		t.Fatalf("parent: got %+v", got)
 	}
 }
 

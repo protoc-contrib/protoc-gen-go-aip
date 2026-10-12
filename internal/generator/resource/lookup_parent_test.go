@@ -24,14 +24,14 @@ var _ = Describe("lookupParent format consistency", func() {
 		}
 
 		reg := newRegistry()
-		reg.insert(nil, &resource{
+		Expect(reg.insert(nil, &resource{
 			Type:     resourceType{ServiceName: "example.com", TypeName: "Organization"},
 			Patterns: []pattern{parentPat},
-		})
-		reg.insert(nil, &resource{
+		})).To(Succeed())
+		Expect(reg.insert(nil, &resource{
 			Type:     resourceType{ServiceName: "example.com", TypeName: "Item"},
 			Patterns: []pattern{childPat},
-		})
+		})).To(Succeed())
 
 		_, err := lookupParent(childPat, "", reg)
 		Expect(err).To(HaveOccurred())
@@ -52,14 +52,14 @@ var _ = Describe("lookupParent format consistency", func() {
 		}
 
 		reg := newRegistry()
-		reg.insert(nil, &resource{
+		Expect(reg.insert(nil, &resource{
 			Type:     resourceType{ServiceName: "example.com", TypeName: "Organization"},
 			Patterns: []pattern{parentPat},
-		})
-		reg.insert(nil, &resource{
+		})).To(Succeed())
+		Expect(reg.insert(nil, &resource{
 			Type:     resourceType{ServiceName: "example.com", TypeName: "Item"},
 			Patterns: []pattern{childPat},
-		})
+		})).To(Succeed())
 
 		got, err := lookupParent(childPat, "", reg)
 		Expect(err).NotTo(HaveOccurred())

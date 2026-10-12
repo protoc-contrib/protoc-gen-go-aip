@@ -84,14 +84,24 @@ func newRegistry() *registry {
 	}
 }
 
-func (r *registry) insert(f *protogen.File, res *resource) {
+// insert records res as declared in f. It fails when f's package already
+// declares the same type: versions of an API each declare their resources,
+// but two in one package would leave a reference from it nothing to choose by.
+func (r *registry) insert(f *protogen.File, res *resource) error {
 	res.File = f
+	for _, previous := range r.byType[res.Type] {
+		if packageOf(previous) == packageOf(res) {
+			return fmt.Errorf("resource type %q is declared twice in package %q: in %s and in %s",
+				res.Type.ServiceName+"/"+res.Type.TypeName, packageOf(res), filePath(previous), filePath(res))
+		}
+	}
 	r.byFile[f] = append(r.byFile[f], res)
 	r.byType[res.Type] = append(r.byType[res.Type], res)
 	r.all = append(r.all, res)
 	if res.Message != nil {
 		r.byMessage[res.Message] = res
 	}
+	return nil
 }
 
 // packageOf is the proto package a resource is declared in, or "" for one
@@ -101,6 +111,15 @@ func packageOf(res *resource) protoreflect.FullName {
 		return ""
 	}
 	return res.File.Desc.Package()
+}
+
+// filePath is the proto file a resource is declared in, or "" for one
+// inserted without a file.
+func filePath(res *resource) string {
+	if res.File == nil {
+		return ""
+	}
+	return res.File.Desc.Path()
 }
 
 // preferPackage picks, among candidates, the first declared in pkg; failing
@@ -187,7 +206,9 @@ func (r *registry) walkFile(f *protogen.File) error {
 		return fmt.Errorf("%s: file-level resources: %w", f.Desc.Path(), err)
 	}
 	for _, res := range fileResources {
-		r.insert(f, res)
+		if err := r.insert(f, res); err != nil {
+			return err
+		}
 	}
 
 	var walk func(msgs []*protogen.Message) error
@@ -198,7 +219,9 @@ func (r *registry) walkFile(f *protogen.File) error {
 				return fmt.Errorf("%v: %w", m.GoIdent, err)
 			}
 			if res != nil {
-				r.insert(f, res)
+				if err := r.insert(f, res); err != nil {
+					return err
+				}
 			}
 			name := string(m.Desc.Name())
 			if strings.HasPrefix(name, "Create") && strings.HasSuffix(name, "Request") {
@@ -655,7 +678,7 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 
 	if parent != nil {
 		emitParent(g, typeName, parent)
-		emitParentConstructor(g, typeName, parent, p)
+		emitParentConstructor(g, r.ParsedType.GoImportPath, typeName, parent, p)
 	}
 
 	if embedFunc != "" {
@@ -749,18 +772,13 @@ func emitContainsWildcard(g *protogen.GeneratedFile, typeName string, p pattern)
 
 // emitParentConstructor emits a constructor method on the parent struct
 // that builds this child resource from the parent's fields plus the
-// child-only segments. Skipped when the parent's type lives in a
-// different Go package — we can't add methods across package boundaries.
-// Skipped also when the parent's type is a multi-pattern interface
-// (parent.ReturnType is the interface, not a struct).
-func emitParentConstructor(g *protogen.GeneratedFile, childTypeName string, parent *parentBinding, childPattern pattern) {
-	if parent.ReturnType.GoImportPath != parent.Variant.GoImportPath {
+// child-only segments. Skipped when the parent's type lives in a different
+// Go package from the child's — Go can't add methods across package
+// boundaries. For a multi-pattern parent the method goes on the matched
+// variant struct, since parent.ReturnType is the interface.
+func emitParentConstructor(g *protogen.GeneratedFile, childImportPath protogen.GoImportPath, childTypeName string, parent *parentBinding, childPattern pattern) {
+	if parent.Variant.GoImportPath != childImportPath {
 		return
-	}
-	if parent.ReturnType.GoName != parent.Variant.GoName {
-		// Multi-pattern parent: emit on the concrete variant struct so
-		// callers reach for `publisherName.Book(...)` rather than the
-		// interface.
 	}
 	extraSegs := childPattern[len(parent.Pattern):]
 	g.P("// ", childTypeName, " builds a ", childTypeName, " under this ", parent.Variant.GoName, ".")
@@ -886,6 +904,10 @@ func emitMultiPatternInterface(g *protogen.GeneratedFile, r *resource, embed str
 	g.P("String() string")
 	g.P("FullName() string")
 	g.P("MarshalText() ([]byte, error)")
+	g.P("Validate() error")
+	g.P("Type() string")
+	g.P("Pattern() string")
+	g.P("ContainsWildcard() bool")
 	g.P(embed, "()")
 	g.P("}")
 	g.P()

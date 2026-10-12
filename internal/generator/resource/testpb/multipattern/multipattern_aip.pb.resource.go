@@ -388,6 +388,10 @@ type BookName interface {
 	String() string
 	FullName() string
 	MarshalText() ([]byte, error)
+	Validate() error
+	Type() string
+	Pattern() string
+	ContainsWildcard() bool
 	mustEmbedBookName()
 }
 
