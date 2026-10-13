@@ -1,6 +1,6 @@
 // Package generator orchestrates the resource-name and query passes of
-// protoc-gen-go-aip. Each pass is invoked sequentially per file and emits
-// its own _aip.pb.*.go companion in the same Go package.
+// protoc-gen-go-aip. The passes run in turn and write into one _aip.pb.go
+// companion per proto file, in the same Go package.
 package generator
 
 import (

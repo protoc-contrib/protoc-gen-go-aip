@@ -11,14 +11,16 @@ AIP](https://aip.dev) resource patterns and List-RPC query handling. It is
 a unification of two earlier `protoc-contrib` plugins, with selected
 additions adopted from [`go.einride.tech/aip`](https://github.com/einride/aip-go).
 
-For each `.proto` it emits up to two companion files in the same Go
-package:
+For each `.proto` it emits one `*_aip.pb.go` companion in the same Go
+package, holding:
 
-- **`*_aip.pb.resource.go`** — resource-name parsers and helpers driven
-  by `google.api.resource` and `google.api.resource_reference`.
-- **`*_aip.pb.query.go`** — AIP-160 CEL filter helpers on List requests
-  that carry a `filter` field. The resource is read off the List method's
-  response, so nothing needs annotating.
+- **resource-name parsers and helpers** driven by `google.api.resource`
+  and `google.api.resource_reference`;
+- **AIP-160 CEL filter helpers** on List requests that carry a `filter`
+  field. The resource is read off the List method's response, so nothing
+  needs annotating.
+
+A `.proto` with neither gets no companion.
 
 > **⚠ Binary-name collision.** This plugin's binary is `protoc-gen-go-aip`,
 > the same name used by the upstream einride plugin under
@@ -167,9 +169,8 @@ service Library {
 }
 ```
 
-`buf generate` produces two companion files. The highlights:
-
-**`books_aip.pb.resource.go`** — resource-name parser:
+`buf generate` produces one companion, `books_aip.pb.go`. The highlights —
+a resource-name parser:
 
 ```go
 type BookName struct {
@@ -182,7 +183,7 @@ func (n BookName)  Validate() error
 func (x *Book)     ParseName() (BookName, error)
 ```
 
-**`books_aip.pb.query.go`** — CEL filter parser:
+and a CEL filter parser:
 
 ```go
 // Declares name, title, author and create_time.
@@ -247,8 +248,11 @@ protoc \
 
 Replace prior `protoc-gen-go-aip-resource` and `protoc-gen-go-aip-query`
 plugin entries in `buf.gen.yaml` with a single `protoc-gen-go-aip`
-entry. Output suffixes are unchanged (`_aip.pb.resource.go`,
-`_aip.pb.query.go`), so downstream import paths don't churn.
+entry. Their two companions, `_aip.pb.resource.go` and `_aip.pb.query.go`
+— which this plugin also wrote up to 0.2.2 — are now one `_aip.pb.go`.
+Delete the old files before regenerating (or set `clean: true` in
+`buf.gen.yaml`), since a stale one redeclares everything the new one holds.
+Import paths don't change — the output stays in the same Go package.
 
 ## Contributing
 

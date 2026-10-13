@@ -14,20 +14,24 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 
+	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator"
+	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/output"
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/query"
 	_ "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/query/testpb"
 )
 
 const (
 	testProtoPath   = "test.proto"
-	testGoldenPath  = "testpb/test_aip.pb.query.go"
-	testGoldenWant  = "internal/generator/query/testpb/test_aip.pb.query.go"
+	testGoldenPath  = "testpb/test_aip.pb.go"
+	testGoldenWant  = "internal/generator/query/testpb/test_aip.pb.go"
 	moduleParameter = "module=github.com/protoc-contrib/protoc-gen-go-aip"
 )
 
 func TestGenerate_Golden(t *testing.T) {
+	// The golden is the whole companion, resource names included, so it is
+	// compared against every pass rather than the query pass alone.
 	plugin := newPlugin(t, buildRequest(t, []string{testProtoPath}, allRegisteredFiles()))
-	if err := query.Generate(plugin); err != nil {
+	if err := generator.Generate(plugin, nil); err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
 	resp := plugin.Response()
@@ -62,7 +66,7 @@ func TestGenerate_SkipsFilesWithoutListMethod(t *testing.T) {
 		}
 	})
 	plugin := newPlugin(t, buildRequest(t, []string{"plain.proto"}, append(allRegisteredFiles(), fd)))
-	if err := query.Generate(plugin); err != nil {
+	if err := query.Generate(plugin, output.New(plugin)); err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
 	if n := len(plugin.Response().File); n != 0 {
@@ -97,7 +101,7 @@ func TestGenerate_SkipsListRequestsWithoutFilter(t *testing.T) {
 		}}
 	})
 	plugin := newPlugin(t, buildRequest(t, []string{"unfiltered.proto"}, append(allRegisteredFiles(), fd)))
-	if err := query.Generate(plugin); err != nil {
+	if err := query.Generate(plugin, output.New(plugin)); err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
 	if n := len(plugin.Response().File); n != 0 {
