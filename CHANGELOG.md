@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.2.2...v0.3.0) (2026-10-13)
+
+
+### Features
+
+* emit one _aip.pb.go per proto ([#65](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/65)) ([87b8c4b](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/87b8c4ba18cf82ad1d647c9700db8971cc5a3c4f))
+
 ## [0.2.2](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.2.1...v0.2.2) (2026-10-12)
 
 
