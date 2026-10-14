@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.4.0...v0.4.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* say what Validate rejects for UUID segments ([#71](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/71)) ([1155bde](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/1155bdefdcb0c4696f9d95e41e2d178d15e832bf))
+
 ## [0.4.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.3.0...v0.4.0) (2026-10-14)
 
 
