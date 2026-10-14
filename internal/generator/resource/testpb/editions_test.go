@@ -1,7 +1,8 @@
 package testpb_test
 
 import (
-	googleuuid "github.com/google/uuid"
+	stduuid "uuid"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"google.golang.org/protobuf/proto"
@@ -12,7 +13,7 @@ import (
 // That this file compiles is most of the test: in edition 2023 every field
 // below is a *string, which the accessors read through their getters.
 var _ = Describe("edition 2023 fields with explicit presence", func() {
-	id := googleuuid.MustParse("55555555-5555-4555-8555-555555555555")
+	id := stduuid.MustParse("55555555-5555-4555-8555-555555555555")
 
 	It("parses an optional resource name and reference", func() {
 		gadget := &editions.Gadget{
@@ -35,7 +36,7 @@ var _ = Describe("edition 2023 fields with explicit presence", func() {
 	It("reads an optional create ID", func() {
 		got, err := (&editions.CreateGadgetRequest{}).ParseGadgetID()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(got).To(Equal(googleuuid.Nil))
+		Expect(got).To(Equal(stduuid.Nil()))
 
 		got, err = (&editions.CreateGadgetRequest{GadgetId: proto.String(id.String())}).ParseGadgetID()
 		Expect(err).NotTo(HaveOccurred())

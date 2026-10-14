@@ -1,10 +1,9 @@
 module github.com/protoc-contrib/protoc-gen-go-aip
 
-go 1.25.8
+go 1.27.0
 
 require (
 	cel.dev/cel-go v0.32.0
-	github.com/google/uuid v1.6.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.44.0

@@ -5,8 +5,8 @@ package v2
 
 import (
 	fmt "fmt"
-	uuid "github.com/google/uuid"
 	strings "strings"
+	uuid "uuid"
 )
 
 // ShelfName is the parsed form of a "versions.example.com/Shelf" resource name (pattern "shelves/{shelf}").
@@ -70,7 +70,7 @@ func (n *ShelfName) UnmarshalText(b []byte) error {
 
 // Validate returns an error if any variable segment is empty or contains '/'.
 func (n ShelfName) Validate() error {
-	if n.ShelfID == uuid.Nil {
+	if n.ShelfID == uuid.Nil() {
 		return fmt.Errorf("shelf: empty")
 	}
 	return nil
@@ -171,7 +171,7 @@ func (n *BookName) UnmarshalText(b []byte) error {
 
 // Validate returns an error if any variable segment is empty or contains '/'.
 func (n BookName) Validate() error {
-	if n.ShelfID == uuid.Nil {
+	if n.ShelfID == uuid.Nil() {
 		return fmt.Errorf("shelf: empty")
 	}
 	if n.BookID == "" {
@@ -241,24 +241,24 @@ func (x *Book) ParseShelf() (ShelfName, error) {
 }
 
 // ParseShelfID returns the ID the caller proposed for the "versions.example.com/Shelf"
-// being created, or uuid.Nil when they left shelf_id empty.
+// being created, or uuid.Nil() when they left shelf_id empty.
 //
 // AIP-133: an empty shelf_id means the server assigns one, and which
 // kind is the server's to decide — a version 7 UUID keeps an index in
-// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with ShelfName{ShelfID: id}.
 func (x *CreateShelfRequest) ParseShelfID() (uuid.UUID, error) {
 	id := x.GetShelfId()
 	if id == "" {
-		return uuid.Nil, nil
+		return uuid.Nil(), nil
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("parse shelf_id %q: %w", id, err)
+		return uuid.Nil(), fmt.Errorf("parse shelf_id %q: %w", id, err)
 	}
-	if parsed == uuid.Nil {
-		return uuid.Nil, fmt.Errorf("parse shelf_id %q: the nil UUID is not an ID", id)
+	if parsed == uuid.Nil() {
+		return uuid.Nil(), fmt.Errorf("parse shelf_id %q: the nil UUID is not an ID", id)
 	}
 	return parsed, nil
 }

@@ -1,7 +1,8 @@
 package testpb_test
 
 import (
-	googleuuid "github.com/google/uuid"
+	stduuid "uuid"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -26,7 +27,7 @@ var _ = Describe("one resource type declared in two API versions", func() {
 	})
 
 	It("binds v2 to v2's UUID-typed Shelf", func() {
-		id := googleuuid.MustParse("66666666-6666-4666-8666-666666666666")
+		id := stduuid.MustParse("66666666-6666-4666-8666-666666666666")
 		var shelf v2.ShelfName
 		var err error
 		shelf, err = (&v2.Book{Shelf: "shelves/" + id.String()}).ParseShelf()

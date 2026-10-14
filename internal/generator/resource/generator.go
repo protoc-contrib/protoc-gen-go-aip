@@ -21,7 +21,7 @@ const (
 	fmtPackage     = protogen.GoImportPath("fmt")
 	stringsPackage = protogen.GoImportPath("strings")
 	errorsPackage  = protogen.GoImportPath("errors")
-	uuidPackage    = protogen.GoImportPath("github.com/google/uuid")
+	uuidPackage    = protogen.GoImportPath("uuid")
 )
 
 // Generate walks every proto file in the plugin request, builds a registry of
@@ -361,7 +361,7 @@ func ownSegment(p pattern) (segment, bool) {
 }
 
 // emitCreateID emits Parse<Segment>ID on the create request. An empty field
-// is uuid.Nil rather than an error: AIP-133 reads it as "the server assigns
+// is uuid.Nil() rather than an error: AIP-133 reads it as "the server assigns
 // one", and which kind of UUID is the server's choice, not the SDK's, so the
 // accessor mints nothing. The nil UUID itself is refused when proposed, since
 // it would be indistinguishable from "none" and a name's Validate rejects it.
@@ -371,24 +371,24 @@ func emitCreateID(g *protogen.GeneratedFile, c createID) {
 	fullType := c.Resource.Type.ServiceName + "/" + c.Resource.Type.TypeName
 
 	g.P("// ", method, " returns the ID the caller proposed for the ", strconv.Quote(fullType))
-	g.P("// being created, or uuid.Nil when they left ", protoField, " empty.")
+	g.P("// being created, or uuid.Nil() when they left ", protoField, " empty.")
 	g.P("//")
 	g.P("// AIP-133: an empty ", protoField, " means the server assigns one, and which")
 	g.P("// kind is the server's to decide — a version 7 UUID keeps an index in")
-	g.P("// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back")
+	g.P("// insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back")
 	g.P("// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,")
 	g.P("// not a resource name: build the name with ", c.Resource.ParsedType.GoName, "{", c.Segment.FieldName(), ": id}.")
 	g.P("func (x *", c.Request.GoIdent, ") ", method, "() (", uuidPackage.Ident("UUID"), ", error) {")
 	g.P("id := x.Get", c.Field.GoName, "()")
 	g.P(`if id == "" {`)
-	g.P("return ", uuidPackage.Ident("Nil"), ", nil")
+	g.P("return ", uuidPackage.Ident("Nil"), "(), nil")
 	g.P("}")
 	g.P("parsed, err := ", uuidPackage.Ident("Parse"), "(id)")
 	g.P("if err != nil {")
-	g.P("return ", uuidPackage.Ident("Nil"), ", ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: %w", id, err)`)
+	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: %w", id, err)`)
 	g.P("}")
-	g.P("if parsed == ", uuidPackage.Ident("Nil"), " {")
-	g.P("return ", uuidPackage.Ident("Nil"), ", ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: the nil UUID is not an ID", id)`)
+	g.P("if parsed == ", uuidPackage.Ident("Nil"), "() {")
+	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: the nil UUID is not an ID", id)`)
 	g.P("}")
 	g.P("return parsed, nil")
 	g.P("}")
@@ -685,7 +685,7 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 // emitValidate emits a Validate() method that rejects empty variable
 // segments and segments containing the path separator '/'. UUID-typed
 // fields can't be empty (uuid.UUID is a value type) but the empty
-// uuid.Nil is still rejected as a degenerate input.
+// uuid.Nil() is still rejected as a degenerate input.
 func emitValidate(g *protogen.GeneratedFile, typeName string, p pattern) {
 	g.P("// Validate returns an error if any variable segment is empty or contains '/'.")
 	g.P("func (n ", typeName, ") Validate() error {")
@@ -695,7 +695,7 @@ func emitValidate(g *protogen.GeneratedFile, typeName string, p pattern) {
 		}
 		field := "n." + s.FieldName()
 		if s.Format == formatUUID4 {
-			g.P("if ", field, " == ", uuidPackage.Ident("Nil"), " {")
+			g.P("if ", field, " == ", uuidPackage.Ident("Nil"), "() {")
 			g.P("return ", fmtPackage.Ident("Errorf"), "(\"", s.Name, ": empty\")")
 			g.P("}")
 			continue
@@ -841,7 +841,7 @@ func parentPattern(p pattern) (pattern, bool) {
 
 // segmentGoType returns the value to feed to g.P as the Go type of a variable
 // segment's struct field. For the default string format it returns the literal
-// "string"; for formatUUID4 it returns a qualified ident into github.com/google/uuid
+// "string"; for formatUUID4 it returns a qualified ident into the standard uuid package
 // so the import is registered.
 func segmentGoType(g *protogen.GeneratedFile, s segment) any {
 	if s.Format == formatUUID4 {

@@ -30,12 +30,16 @@
         # not mistaken for the release it trails.
         version = "${release}+${self.shortRev or self.dirtyShortRev or "dirty"}";
 
-        source = pkgs.buildGoModule {
+        # Generated code imports the standard library's `uuid` package (Go 1.27),
+        # and so do this module's own fixtures.
+        go = pkgs.go_1_27;
+
+        source = (pkgs.buildGoModule.override { inherit go; }) {
           pname = "protoc-gen-go-aip";
           inherit version;
           src = pkgs.lib.cleanSource ./.;
           subPackages = [ "cmd/protoc-gen-go-aip" ];
-          vendorHash = "sha256-vgdp+XOdEvVyy+zdJLJFfJI5mKzv9CZ1KHjyL6irbGo=";
+          vendorHash = "sha256-A++Xyrsi/K21CWp06FKNrAtwWluB/3q+IW3lyx18ras=";
           ldflags = [
             "-s"
             "-w"
@@ -63,7 +67,7 @@
         devShells.default = pkgs.mkShell {
           name = "protoc-gen-go-aip";
           packages = [
-            pkgs.go
+            go
             pkgs.protobuf
             pkgs.buf
           ];
