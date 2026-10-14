@@ -68,7 +68,7 @@ func (n *CollectionName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is empty or contains '/'.
+// Validate returns an error if any variable segment is the nil UUID.
 func (n CollectionName) Validate() error {
 	if n.CollectionID == uuid.Nil() {
 		return fmt.Errorf("collection: empty")
@@ -161,7 +161,7 @@ func (n *OrganizationName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is empty or contains '/'.
+// Validate returns an error if any variable segment is the nil UUID.
 func (n OrganizationName) Validate() error {
 	if n.OrganizationID == uuid.Nil() {
 		return fmt.Errorf("organization: empty")
@@ -266,7 +266,7 @@ func (n *ItemName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is empty or contains '/'.
+// Validate returns an error if any variable segment is the nil UUID.
 func (n ItemName) Validate() error {
 	if n.OrganizationID == uuid.Nil() {
 		return fmt.Errorf("organization: empty")
