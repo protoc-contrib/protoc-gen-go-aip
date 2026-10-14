@@ -5,8 +5,8 @@ package editions
 
 import (
 	fmt "fmt"
-	uuid "github.com/google/uuid"
 	strings "strings"
+	uuid "uuid"
 )
 
 // GadgetName is the parsed form of a "example.com/Gadget" resource name (pattern "gadgets/{gadget}").
@@ -70,7 +70,7 @@ func (n *GadgetName) UnmarshalText(b []byte) error {
 
 // Validate returns an error if any variable segment is empty or contains '/'.
 func (n GadgetName) Validate() error {
-	if n.GadgetID == uuid.Nil {
+	if n.GadgetID == uuid.Nil() {
 		return fmt.Errorf("gadget: empty")
 	}
 	return nil
@@ -118,24 +118,24 @@ func (x *Gadget) ParseTwin() (GadgetName, error) {
 }
 
 // ParseGadgetID returns the ID the caller proposed for the "example.com/Gadget"
-// being created, or uuid.Nil when they left gadget_id empty.
+// being created, or uuid.Nil() when they left gadget_id empty.
 //
 // AIP-133: an empty gadget_id means the server assigns one, and which
 // kind is the server's to decide — a version 7 UUID keeps an index in
-// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with GadgetName{GadgetID: id}.
 func (x *CreateGadgetRequest) ParseGadgetID() (uuid.UUID, error) {
 	id := x.GetGadgetId()
 	if id == "" {
-		return uuid.Nil, nil
+		return uuid.Nil(), nil
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("parse gadget_id %q: %w", id, err)
+		return uuid.Nil(), fmt.Errorf("parse gadget_id %q: %w", id, err)
 	}
-	if parsed == uuid.Nil {
-		return uuid.Nil, fmt.Errorf("parse gadget_id %q: the nil UUID is not an ID", id)
+	if parsed == uuid.Nil() {
+		return uuid.Nil(), fmt.Errorf("parse gadget_id %q: the nil UUID is not an ID", id)
 	}
 	return parsed, nil
 }

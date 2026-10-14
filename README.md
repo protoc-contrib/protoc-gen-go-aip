@@ -72,7 +72,8 @@ A `.proto` with neither gets no companion.
   scope emits parsers even without a backing message.
 - **UUID-typed segments** — declare `(google.api.field_info).format = UUID4`
   on the `<var>_id` field of a `Create<Resource>Request` (AIP-133) to
-  have the generated struct field typed as `uuid.UUID` and validated at
+  have the generated struct field typed as `uuid.UUID` — the standard
+  library's `uuid` package, so generated code needs Go 1.27 — and validated at
   parse time. The parent UUID consistency check is automatic across the
   pattern tree.
 - **ID helpers for goverter** — a single-pattern resource whose only
@@ -84,10 +85,10 @@ A `.proto` with neither gets no companion.
   literal can't express.
 - **AIP-133 create IDs** — that same `Create<Resource>Request` gains a
   `Parse<Resource>ID()` method returning the ID the caller proposed, or
-  `uuid.Nil` when `<resource>_id` is empty: AIP-133 reads that as "the
+  `uuid.Nil()` when `<resource>_id` is empty: AIP-133 reads that as "the
   server assigns one", and which kind of UUID is the server's choice, so
   the accessor mints nothing —
-  `if id == uuid.Nil { id, _ = uuid.NewV7() }` says which at the call site.
+  `if id == uuid.Nil() { id = uuid.NewV7() }` says which at the call site.
   Only for a single-pattern resource with a UUID-typed own ID, as in
   `protoc-gen-rust-aip`: a string ID has no validity rule the schema
   states, and a multi-pattern resource's create request does not say which

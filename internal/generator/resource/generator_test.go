@@ -308,7 +308,7 @@ var _ = Describe("resource.Generate UUID segments", func() {
 		resp, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
 		Expect(err).NotTo(HaveOccurred())
 		out := fileByName(resp, "uuid/uuid_aip.pb.go")
-		Expect(out).To(ContainSubstring(`uuid "github.com/google/uuid"`))
+		Expect(out).To(ContainSubstring(`uuid "uuid"`))
 		Expect(out).To(ContainSubstring("CollectionID uuid.UUID"))
 		Expect(out).To(ContainSubstring("uuid.Parse(parts[1])"))
 		Expect(out).To(ContainSubstring(`fmt.Errorf("parse %q: segment 1: %w", s, err)`))

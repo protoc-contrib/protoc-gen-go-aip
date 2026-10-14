@@ -5,8 +5,8 @@ package uuid
 
 import (
 	fmt "fmt"
-	uuid "github.com/google/uuid"
 	strings "strings"
+	uuid "uuid"
 )
 
 // CollectionName is the parsed form of a "example.com/Collection" resource name (pattern "collections/{collection}").
@@ -70,7 +70,7 @@ func (n *CollectionName) UnmarshalText(b []byte) error {
 
 // Validate returns an error if any variable segment is empty or contains '/'.
 func (n CollectionName) Validate() error {
-	if n.CollectionID == uuid.Nil {
+	if n.CollectionID == uuid.Nil() {
 		return fmt.Errorf("collection: empty")
 	}
 	return nil
@@ -163,7 +163,7 @@ func (n *OrganizationName) UnmarshalText(b []byte) error {
 
 // Validate returns an error if any variable segment is empty or contains '/'.
 func (n OrganizationName) Validate() error {
-	if n.OrganizationID == uuid.Nil {
+	if n.OrganizationID == uuid.Nil() {
 		return fmt.Errorf("organization: empty")
 	}
 	return nil
@@ -268,10 +268,10 @@ func (n *ItemName) UnmarshalText(b []byte) error {
 
 // Validate returns an error if any variable segment is empty or contains '/'.
 func (n ItemName) Validate() error {
-	if n.OrganizationID == uuid.Nil {
+	if n.OrganizationID == uuid.Nil() {
 		return fmt.Errorf("organization: empty")
 	}
-	if n.ItemID == uuid.Nil {
+	if n.ItemID == uuid.Nil() {
 		return fmt.Errorf("item: empty")
 	}
 	return nil
@@ -340,70 +340,70 @@ func (x *Item) ParseFullName() (ItemName, error) {
 }
 
 // ParseCollectionID returns the ID the caller proposed for the "example.com/Collection"
-// being created, or uuid.Nil when they left collection_id empty.
+// being created, or uuid.Nil() when they left collection_id empty.
 //
 // AIP-133: an empty collection_id means the server assigns one, and which
 // kind is the server's to decide — a version 7 UUID keeps an index in
-// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with CollectionName{CollectionID: id}.
 func (x *CreateCollectionRequest) ParseCollectionID() (uuid.UUID, error) {
 	id := x.GetCollectionId()
 	if id == "" {
-		return uuid.Nil, nil
+		return uuid.Nil(), nil
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("parse collection_id %q: %w", id, err)
+		return uuid.Nil(), fmt.Errorf("parse collection_id %q: %w", id, err)
 	}
-	if parsed == uuid.Nil {
-		return uuid.Nil, fmt.Errorf("parse collection_id %q: the nil UUID is not an ID", id)
+	if parsed == uuid.Nil() {
+		return uuid.Nil(), fmt.Errorf("parse collection_id %q: the nil UUID is not an ID", id)
 	}
 	return parsed, nil
 }
 
 // ParseOrganizationID returns the ID the caller proposed for the "example.com/Organization"
-// being created, or uuid.Nil when they left organization_id empty.
+// being created, or uuid.Nil() when they left organization_id empty.
 //
 // AIP-133: an empty organization_id means the server assigns one, and which
 // kind is the server's to decide — a version 7 UUID keeps an index in
-// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with OrganizationName{OrganizationID: id}.
 func (x *CreateOrganizationRequest) ParseOrganizationID() (uuid.UUID, error) {
 	id := x.GetOrganizationId()
 	if id == "" {
-		return uuid.Nil, nil
+		return uuid.Nil(), nil
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("parse organization_id %q: %w", id, err)
+		return uuid.Nil(), fmt.Errorf("parse organization_id %q: %w", id, err)
 	}
-	if parsed == uuid.Nil {
-		return uuid.Nil, fmt.Errorf("parse organization_id %q: the nil UUID is not an ID", id)
+	if parsed == uuid.Nil() {
+		return uuid.Nil(), fmt.Errorf("parse organization_id %q: the nil UUID is not an ID", id)
 	}
 	return parsed, nil
 }
 
 // ParseItemID returns the ID the caller proposed for the "example.com/Item"
-// being created, or uuid.Nil when they left item_id empty.
+// being created, or uuid.Nil() when they left item_id empty.
 //
 // AIP-133: an empty item_id means the server assigns one, and which
 // kind is the server's to decide — a version 7 UUID keeps an index in
-// insertion order, a version 4 reveals nothing — so uuid.Nil is handed back
+// insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with ItemName{ItemID: id}.
 func (x *CreateItemRequest) ParseItemID() (uuid.UUID, error) {
 	id := x.GetItemId()
 	if id == "" {
-		return uuid.Nil, nil
+		return uuid.Nil(), nil
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("parse item_id %q: %w", id, err)
+		return uuid.Nil(), fmt.Errorf("parse item_id %q: %w", id, err)
 	}
-	if parsed == uuid.Nil {
-		return uuid.Nil, fmt.Errorf("parse item_id %q: the nil UUID is not an ID", id)
+	if parsed == uuid.Nil() {
+		return uuid.Nil(), fmt.Errorf("parse item_id %q: the nil UUID is not an ID", id)
 	}
 	return parsed, nil
 }
