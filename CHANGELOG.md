@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.3.0...v0.4.0) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* generated *_aip.pb.go files use the standard library's uuid.UUID, so they need Go 1.27, and callers comparing against uuid.Nil use uuid.Nil() instead.
+
+### Features
+
+* type UUID segments with the standard library's uuid package ([#68](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/68)) ([b3fadb4](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/b3fadb433321286296989347ce1c03aabb0bbcf4))
+
 ## [0.3.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.2.2...v0.3.0) (2026-10-13)
 
 
