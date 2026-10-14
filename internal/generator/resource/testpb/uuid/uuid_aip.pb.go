@@ -31,6 +31,9 @@ func ParseCollectionName(s string) (CollectionName, error) {
 	if err != nil {
 		return CollectionName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
 	}
+	if v1.String() != parts[1] {
+		return CollectionName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+	}
 	out.CollectionID = v1
 	return out, nil
 }
@@ -123,6 +126,9 @@ func ParseOrganizationName(s string) (OrganizationName, error) {
 	v1, err := uuid.Parse(parts[1])
 	if err != nil {
 		return OrganizationName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	}
+	if v1.String() != parts[1] {
+		return OrganizationName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
 	}
 	out.OrganizationID = v1
 	return out, nil
@@ -218,6 +224,9 @@ func ParseItemName(s string) (ItemName, error) {
 	if err != nil {
 		return ItemName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
 	}
+	if v1.String() != parts[1] {
+		return ItemName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+	}
 	out.OrganizationID = v1
 	if parts[2] != "items" {
 		return ItemName{}, fmt.Errorf("parse %q: bad segment 2, want: %q, got: %q", s, "items", parts[2])
@@ -228,6 +237,9 @@ func ParseItemName(s string) (ItemName, error) {
 	v3, err := uuid.Parse(parts[3])
 	if err != nil {
 		return ItemName{}, fmt.Errorf("parse %q: segment 3: %w", s, err)
+	}
+	if v3.String() != parts[3] {
+		return ItemName{}, fmt.Errorf("parse %q: segment 3: not a canonical lowercase UUID", s)
 	}
 	out.ItemID = v3
 	return out, nil
@@ -356,6 +368,9 @@ func (x *CreateCollectionRequest) ParseCollectionID() (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil(), fmt.Errorf("parse collection_id %q: %w", id, err)
 	}
+	if parsed.String() != id {
+		return uuid.Nil(), fmt.Errorf("parse collection_id %q: not a canonical lowercase UUID", id)
+	}
 	if parsed == uuid.Nil() {
 		return uuid.Nil(), fmt.Errorf("parse collection_id %q: the nil UUID is not an ID", id)
 	}
@@ -379,6 +394,9 @@ func (x *CreateOrganizationRequest) ParseOrganizationID() (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil(), fmt.Errorf("parse organization_id %q: %w", id, err)
 	}
+	if parsed.String() != id {
+		return uuid.Nil(), fmt.Errorf("parse organization_id %q: not a canonical lowercase UUID", id)
+	}
 	if parsed == uuid.Nil() {
 		return uuid.Nil(), fmt.Errorf("parse organization_id %q: the nil UUID is not an ID", id)
 	}
@@ -401,6 +419,9 @@ func (x *CreateItemRequest) ParseItemID() (uuid.UUID, error) {
 	parsed, err := uuid.Parse(id)
 	if err != nil {
 		return uuid.Nil(), fmt.Errorf("parse item_id %q: %w", id, err)
+	}
+	if parsed.String() != id {
+		return uuid.Nil(), fmt.Errorf("parse item_id %q: not a canonical lowercase UUID", id)
 	}
 	if parsed == uuid.Nil() {
 		return uuid.Nil(), fmt.Errorf("parse item_id %q: the nil UUID is not an ID", id)

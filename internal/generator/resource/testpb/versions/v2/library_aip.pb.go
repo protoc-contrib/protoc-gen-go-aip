@@ -31,6 +31,9 @@ func ParseShelfName(s string) (ShelfName, error) {
 	if err != nil {
 		return ShelfName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
 	}
+	if v1.String() != parts[1] {
+		return ShelfName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+	}
 	out.ShelfID = v1
 	return out, nil
 }
@@ -124,6 +127,9 @@ func ParseBookName(s string) (BookName, error) {
 	v1, err := uuid.Parse(parts[1])
 	if err != nil {
 		return BookName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	}
+	if v1.String() != parts[1] {
+		return BookName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
 	}
 	out.ShelfID = v1
 	if parts[2] != "books" {
@@ -256,6 +262,9 @@ func (x *CreateShelfRequest) ParseShelfID() (uuid.UUID, error) {
 	parsed, err := uuid.Parse(id)
 	if err != nil {
 		return uuid.Nil(), fmt.Errorf("parse shelf_id %q: %w", id, err)
+	}
+	if parsed.String() != id {
+		return uuid.Nil(), fmt.Errorf("parse shelf_id %q: not a canonical lowercase UUID", id)
 	}
 	if parsed == uuid.Nil() {
 		return uuid.Nil(), fmt.Errorf("parse shelf_id %q: the nil UUID is not an ID", id)
