@@ -687,7 +687,7 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 // fields can't be empty (uuid.UUID is a value type) but the empty
 // uuid.Nil() is still rejected as a degenerate input.
 func emitValidate(g *protogen.GeneratedFile, typeName string, p pattern) {
-	g.P("// Validate returns an error if any variable segment is empty or contains '/'.")
+	g.P("// Validate returns an error if ", validateCondition(p), ".")
 	g.P("func (n ", typeName, ") Validate() error {")
 	for _, s := range p {
 		if !s.Var {
@@ -710,6 +710,30 @@ func emitValidate(g *protogen.GeneratedFile, typeName string, p pattern) {
 	g.P("return nil")
 	g.P("}")
 	g.P()
+}
+
+// validateCondition says what Validate rejects, for its doc comment: a string
+// segment that is empty or contains '/', a UUID segment that is the nil UUID.
+func validateCondition(p pattern) string {
+	var strs, uuids bool
+	for _, s := range p {
+		if !s.Var {
+			continue
+		}
+		if s.Format == formatUUID4 {
+			uuids = true
+		} else {
+			strs = true
+		}
+	}
+	switch {
+	case strs && uuids:
+		return "a string segment is empty or contains '/', or a UUID segment is the nil UUID"
+	case uuids:
+		return "any variable segment is the nil UUID"
+	default:
+		return "any variable segment is empty or contains '/'"
+	}
 }
 
 // emitType emits a Type() method returning the resource's fully-qualified

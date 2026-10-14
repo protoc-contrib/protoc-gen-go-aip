@@ -68,7 +68,7 @@ func (n *ShelfName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is empty or contains '/'.
+// Validate returns an error if any variable segment is the nil UUID.
 func (n ShelfName) Validate() error {
 	if n.ShelfID == uuid.Nil() {
 		return fmt.Errorf("shelf: empty")
@@ -169,7 +169,7 @@ func (n *BookName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is empty or contains '/'.
+// Validate returns an error if a string segment is empty or contains '/', or a UUID segment is the nil UUID.
 func (n BookName) Validate() error {
 	if n.ShelfID == uuid.Nil() {
 		return fmt.Errorf("shelf: empty")

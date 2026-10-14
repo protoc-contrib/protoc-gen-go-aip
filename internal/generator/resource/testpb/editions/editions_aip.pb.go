@@ -68,7 +68,7 @@ func (n *GadgetName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is empty or contains '/'.
+// Validate returns an error if any variable segment is the nil UUID.
 func (n GadgetName) Validate() error {
 	if n.GadgetID == uuid.Nil() {
 		return fmt.Errorf("gadget: empty")
