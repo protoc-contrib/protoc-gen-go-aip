@@ -22,6 +22,7 @@ const (
 	stringsPackage = protogen.GoImportPath("strings")
 	errorsPackage  = protogen.GoImportPath("errors")
 	uuidPackage    = protogen.GoImportPath("uuid")
+	aipPackage     = protogen.GoImportPath("github.com/protoc-contrib/aip-go")
 )
 
 // Generate walks every proto file in the plugin request, builds a registry of
@@ -378,6 +379,8 @@ func emitCreateID(g *protogen.GeneratedFile, c createID) {
 	g.P("// insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back")
 	g.P("// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,")
 	g.P("// not a resource name: build the name with ", c.Resource.ParsedType.GoName, "{", c.Segment.FieldName(), ": id}.")
+	g.P("//")
+	g.P("// A failure is a *aip.FieldError naming ", protoField, ".")
 	g.P("func (x *", c.Request.GoIdent, ") ", method, "() (", uuidPackage.Ident("UUID"), ", error) {")
 	g.P("id := x.Get", c.Field.GoName, "()")
 	g.P(`if id == "" {`)
@@ -385,13 +388,13 @@ func emitCreateID(g *protogen.GeneratedFile, c createID) {
 	g.P("}")
 	g.P("parsed, err := ", uuidPackage.Ident("Parse"), "(id)")
 	g.P("if err != nil {")
-	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: %w", id, err)`)
+	g.P("return ", uuidPackage.Ident("Nil"), "(), ", aipPackage.Ident("NewFieldError"), `(x, "`, protoField, `", `, fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: %w", id, err)`, `)`)
 	g.P("}")
 	g.P("if parsed.String() != id {")
-	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: not a canonical lowercase UUID", id)`)
+	g.P("return ", uuidPackage.Ident("Nil"), "(), ", aipPackage.Ident("NewFieldError"), `(x, "`, protoField, `", `, fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: not a canonical lowercase UUID", id)`, `)`)
 	g.P("}")
 	g.P("if parsed == ", uuidPackage.Ident("Nil"), "() {")
-	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: the nil UUID is not an ID", id)`)
+	g.P("return ", uuidPackage.Ident("Nil"), "(), ", aipPackage.Ident("NewFieldError"), `(x, "`, protoField, `", `, fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: the nil UUID is not an ID", id)`, `)`)
 	g.P("}")
 	g.P("return parsed, nil")
 	g.P("}")
@@ -972,9 +975,11 @@ func emitMultiPatternInterface(g *protogen.GeneratedFile, r *resource, embed str
 type reference struct {
 	Owner      *protogen.Message
 	FieldName  string           // Go name of the field whose value should be parsed
+	ProtoField string           // proto name of that field, which a parse failure names
 	MethodName string           // full Go method name (e.g. "ParseName", "ParseFullName", "ParseBar")
 	ParsedType protogen.GoIdent // return type
 	ParseFunc  protogen.GoIdent // callee that does the parsing
+	Interface  bool             // ParsedType is an interface, a resource of several patterns: its zero value is nil
 }
 
 // collectReferences walks every message in the file and returns the parse
@@ -1000,18 +1005,22 @@ func collectReferences(f *protogen.File, reg *registry, opts *Options) ([]refere
 				if err := record(reference{
 					Owner:      m,
 					FieldName:  res.NameField.GoName,
+					ProtoField: string(res.NameField.Desc.Name()),
 					MethodName: "Parse" + base,
 					ParsedType: res.ParsedType,
 					ParseFunc:  res.ParseFunc,
+					Interface:  len(res.Patterns) > 1,
 				}); err != nil {
 					return err
 				}
 				if err := record(reference{
 					Owner:      m,
 					FieldName:  res.NameField.GoName,
+					ProtoField: string(res.NameField.Desc.Name()),
 					MethodName: "ParseFull" + base,
 					ParsedType: res.ParsedType,
 					ParseFunc:  res.FullParseFunc,
+					Interface:  len(res.Patterns) > 1,
 				}); err != nil {
 					return err
 				}
@@ -1082,19 +1091,30 @@ func fieldReference(field *protogen.Field, reg *registry, opts *Options) (refere
 	return reference{
 		Owner:      field.Parent,
 		FieldName:  field.GoName,
+		ProtoField: string(field.Desc.Name()),
 		MethodName: "Parse" + field.GoName,
 		ParsedType: res.ParsedType,
 		ParseFunc:  res.ParseFunc,
+		Interface:  len(res.Patterns) > 1,
 	}, true, nil
 }
 
 func emitReference(g *protogen.GeneratedFile, ref reference) {
-	g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, ".")
+	g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, ". A failure is a")
+	g.P("// *aip.FieldError naming ", ref.ProtoField, ".")
 	g.P("func (x *", ref.Owner.GoIdent, ") ", ref.MethodName, "() (", ref.ParsedType, ", error) {")
 	// The getter, not the field: an explicit-presence field — proto2
 	// `optional`, editions' default — is a *string, and the opaque API has no
 	// exported field at all.
-	g.P("return ", ref.ParseFunc, "(x.Get", ref.FieldName, "())")
+	g.P("parsed, err := ", ref.ParseFunc, "(x.Get", ref.FieldName, "())")
+	g.P("if err != nil {")
+	zero := []any{ref.ParsedType, "{}"}
+	if ref.Interface {
+		zero = []any{"nil"}
+	}
+	g.P(append(append([]any{"return "}, zero...), ", ", aipPackage.Ident("NewFieldError"), `(x, "`, ref.ProtoField, `", err)`)...)
+	g.P("}")
+	g.P("return parsed, nil")
 	g.P("}")
 	g.P()
 }

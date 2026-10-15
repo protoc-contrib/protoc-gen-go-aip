@@ -5,6 +5,7 @@ package v2
 
 import (
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	strings "strings"
 	uuid "uuid"
 )
@@ -221,29 +222,54 @@ func (n ShelfName) BookName(
 	}
 }
 
-// ParseName parses x.Name as ShelfName.
+// ParseName parses x.Name as ShelfName. A failure is a
+// *aip.FieldError naming name.
 func (x *Shelf) ParseName() (ShelfName, error) {
-	return ParseShelfName(x.GetName())
+	parsed, err := ParseShelfName(x.GetName())
+	if err != nil {
+		return ShelfName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as ShelfName.
+// ParseFullName parses x.Name as ShelfName. A failure is a
+// *aip.FieldError naming name.
 func (x *Shelf) ParseFullName() (ShelfName, error) {
-	return ParseFullShelfName(x.GetName())
+	parsed, err := ParseFullShelfName(x.GetName())
+	if err != nil {
+		return ShelfName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseName parses x.Name as BookName.
+// ParseName parses x.Name as BookName. A failure is a
+// *aip.FieldError naming name.
 func (x *Book) ParseName() (BookName, error) {
-	return ParseBookName(x.GetName())
+	parsed, err := ParseBookName(x.GetName())
+	if err != nil {
+		return BookName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as BookName.
+// ParseFullName parses x.Name as BookName. A failure is a
+// *aip.FieldError naming name.
 func (x *Book) ParseFullName() (BookName, error) {
-	return ParseFullBookName(x.GetName())
+	parsed, err := ParseFullBookName(x.GetName())
+	if err != nil {
+		return BookName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseShelf parses x.Shelf as ShelfName.
+// ParseShelf parses x.Shelf as ShelfName. A failure is a
+// *aip.FieldError naming shelf.
 func (x *Book) ParseShelf() (ShelfName, error) {
-	return ParseShelfName(x.GetShelf())
+	parsed, err := ParseShelfName(x.GetShelf())
+	if err != nil {
+		return ShelfName{}, aip_go.NewFieldError(x, "shelf", err)
+	}
+	return parsed, nil
 }
 
 // ParseShelfID returns the ID the caller proposed for the "versions.example.com/Shelf"
@@ -254,6 +280,8 @@ func (x *Book) ParseShelf() (ShelfName, error) {
 // insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with ShelfName{ShelfID: id}.
+//
+// A failure is a *aip.FieldError naming shelf_id.
 func (x *CreateShelfRequest) ParseShelfID() (uuid.UUID, error) {
 	id := x.GetShelfId()
 	if id == "" {
@@ -261,13 +289,13 @@ func (x *CreateShelfRequest) ParseShelfID() (uuid.UUID, error) {
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil(), fmt.Errorf("parse shelf_id %q: %w", id, err)
+		return uuid.Nil(), aip_go.NewFieldError(x, "shelf_id", fmt.Errorf("parse shelf_id %q: %w", id, err))
 	}
 	if parsed.String() != id {
-		return uuid.Nil(), fmt.Errorf("parse shelf_id %q: not a canonical lowercase UUID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "shelf_id", fmt.Errorf("parse shelf_id %q: not a canonical lowercase UUID", id))
 	}
 	if parsed == uuid.Nil() {
-		return uuid.Nil(), fmt.Errorf("parse shelf_id %q: the nil UUID is not an ID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "shelf_id", fmt.Errorf("parse shelf_id %q: the nil UUID is not an ID", id))
 	}
 	return parsed, nil
 }

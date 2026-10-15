@@ -195,6 +195,14 @@ var ListBooksFilterEnv *cel.Env
 func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error)
 ```
 
+The methods on a message name the field they read: a failure is a
+`*aip.FieldError` from [aip-go](https://github.com/protoc-contrib/aip-go), whose
+`Field()` is the proto field (`name`, `parent`, `filter`) and whose `Unwrap` is
+the parse failure. A handler that answers `InvalidArgument` takes the field from
+the error rather than typing it again; the free `Parse<Resource>Name` functions
+have no field and return their error bare. The generated code imports aip-go, so
+a module that compiles it requires `github.com/protoc-contrib/aip-go`.
+
 Call sites stay terse:
 
 ```go
