@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.4.1...v0.5.0) (2026-10-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* a resource name or proposed create id with a non-canonical UUID spelling no longer parses.
+
+### Bug Fixes
+
+* accept only canonical lowercase UUIDs in resource names ([#73](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/73)) ([3d17b6c](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/3d17b6c3b24a3532ce741919ba9f0a715e62eeae))
+
 ## [0.4.1](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.4.0...v0.4.1) (2026-10-14)
 
 
