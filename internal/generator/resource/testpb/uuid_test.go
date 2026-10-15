@@ -25,6 +25,19 @@ var _ = Describe("UUID-typed resource names", func() {
 		Expect(err.Error()).To(ContainSubstring(`parse "collections/not-a-uuid": segment 1:`))
 	})
 
+	// AIP-122 ids are lowercase. uuid.Parse also takes these spellings of the
+	// same UUID, which would format back differently.
+	DescribeTable("rejects a UUID segment that is not canonical",
+		func(segment string) {
+			_, err := uuid.ParseCollectionName("collections/" + segment)
+			Expect(err).To(MatchError(ContainSubstring("segment 1: not a canonical lowercase UUID")))
+		},
+		Entry("uppercase", "11111111-1111-4111-8111-11111111111A"),
+		Entry("braces", "{11111111-1111-4111-8111-111111111111}"),
+		Entry("urn prefix", "urn:uuid:11111111-1111-4111-8111-111111111111"),
+		Entry("no hyphens", "11111111111141118111111111111111"),
+	)
+
 	It("round-trips a UUID id through Format and Parse helpers", func() {
 		id := stduuid.MustParse("44444444-4444-4444-8444-444444444444")
 
@@ -62,6 +75,11 @@ var _ = Describe("UUID-typed resource names", func() {
 			_, err := (&uuid.CreateCollectionRequest{CollectionId: "not-a-uuid"}).ParseCollectionID()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(`parse collection_id "not-a-uuid":`))
+		})
+
+		It("refuses a proposed ID that is not a canonical lowercase UUID", func() {
+			_, err := (&uuid.CreateCollectionRequest{CollectionId: "11111111-1111-4111-8111-11111111111A"}).ParseCollectionID()
+			Expect(err).To(MatchError(`parse collection_id "11111111-1111-4111-8111-11111111111A": not a canonical lowercase UUID`))
 		})
 
 		It("refuses the nil UUID, which would read as no ID at all", func() {

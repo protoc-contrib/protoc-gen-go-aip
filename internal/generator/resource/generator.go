@@ -387,6 +387,9 @@ func emitCreateID(g *protogen.GeneratedFile, c createID) {
 	g.P("if err != nil {")
 	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: %w", id, err)`)
 	g.P("}")
+	g.P("if parsed.String() != id {")
+	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: not a canonical lowercase UUID", id)`)
+	g.P("}")
 	g.P("if parsed == ", uuidPackage.Ident("Nil"), "() {")
 	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), `("parse `, protoField, ` %q: the nil UUID is not an ID", id)`)
 	g.P("}")
@@ -611,6 +614,12 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 				g.P("v", i, ", err := ", uuidPackage.Ident("Parse"), "(parts[", i, "])")
 				g.P("if err != nil {")
 				g.P("return ", typeName, "{}, ", fmtPackage.Ident("Errorf"), "(\"parse %q: segment ", i, ": %w\", s, err)")
+				g.P("}")
+				// AIP-122 ids are lowercase, and the parser accepts other
+				// spellings -- uppercase, braces, a urn: prefix, no hyphens --
+				// that would format back differently.
+				g.P("if v", i, ".String() != parts[", i, "] {")
+				g.P("return ", typeName, "{}, ", fmtPackage.Ident("Errorf"), "(\"parse %q: segment ", i, ": not a canonical lowercase UUID\", s)")
 				g.P("}")
 				g.P("out.", s.FieldName(), " = v", i)
 				continue

@@ -74,7 +74,9 @@ A `.proto` with neither gets no companion.
   on the `<var>_id` field of a `Create<Resource>Request` (AIP-133) to
   have the generated struct field typed as `uuid.UUID` — the standard
   library's `uuid` package, so generated code needs Go 1.27 — and validated at
-  parse time. The parent UUID consistency check is automatic across the
+  parse time. Only the canonical lowercase form is accepted (AIP-122): an
+  uppercase, braced, `urn:uuid:` or hyphen-less spelling is rejected, since it
+  would format back as a different name. The parent UUID consistency check is automatic across the
   pattern tree.
 - **ID helpers for goverter** — a single-pattern resource whose only
   variable segment is UUID-typed also gets two free functions,
