@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.5.0...v0.6.0) (2026-10-15)
+
+
+### Features
+
+* message parse methods name the field they read ([#77](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/77)) ([786e61c](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/786e61c788ce5c0f04b5f42c4d0b247c082df0c5))
+
 ## [0.5.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.4.1...v0.5.0) (2026-10-15)
 
 
