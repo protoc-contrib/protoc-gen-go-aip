@@ -5,6 +5,7 @@ package uuid
 
 import (
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	strings "strings"
 	uuid "uuid"
 )
@@ -321,34 +322,64 @@ func (n OrganizationName) ItemName(
 	}
 }
 
-// ParseName parses x.Name as CollectionName.
+// ParseName parses x.Name as CollectionName. A failure is a
+// *aip.FieldError naming name.
 func (x *Collection) ParseName() (CollectionName, error) {
-	return ParseCollectionName(x.GetName())
+	parsed, err := ParseCollectionName(x.GetName())
+	if err != nil {
+		return CollectionName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as CollectionName.
+// ParseFullName parses x.Name as CollectionName. A failure is a
+// *aip.FieldError naming name.
 func (x *Collection) ParseFullName() (CollectionName, error) {
-	return ParseFullCollectionName(x.GetName())
+	parsed, err := ParseFullCollectionName(x.GetName())
+	if err != nil {
+		return CollectionName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseName parses x.Name as OrganizationName.
+// ParseName parses x.Name as OrganizationName. A failure is a
+// *aip.FieldError naming name.
 func (x *Organization) ParseName() (OrganizationName, error) {
-	return ParseOrganizationName(x.GetName())
+	parsed, err := ParseOrganizationName(x.GetName())
+	if err != nil {
+		return OrganizationName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as OrganizationName.
+// ParseFullName parses x.Name as OrganizationName. A failure is a
+// *aip.FieldError naming name.
 func (x *Organization) ParseFullName() (OrganizationName, error) {
-	return ParseFullOrganizationName(x.GetName())
+	parsed, err := ParseFullOrganizationName(x.GetName())
+	if err != nil {
+		return OrganizationName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseName parses x.Name as ItemName.
+// ParseName parses x.Name as ItemName. A failure is a
+// *aip.FieldError naming name.
 func (x *Item) ParseName() (ItemName, error) {
-	return ParseItemName(x.GetName())
+	parsed, err := ParseItemName(x.GetName())
+	if err != nil {
+		return ItemName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as ItemName.
+// ParseFullName parses x.Name as ItemName. A failure is a
+// *aip.FieldError naming name.
 func (x *Item) ParseFullName() (ItemName, error) {
-	return ParseFullItemName(x.GetName())
+	parsed, err := ParseFullItemName(x.GetName())
+	if err != nil {
+		return ItemName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
 // ParseCollectionID returns the ID the caller proposed for the "example.com/Collection"
@@ -359,6 +390,8 @@ func (x *Item) ParseFullName() (ItemName, error) {
 // insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with CollectionName{CollectionID: id}.
+//
+// A failure is a *aip.FieldError naming collection_id.
 func (x *CreateCollectionRequest) ParseCollectionID() (uuid.UUID, error) {
 	id := x.GetCollectionId()
 	if id == "" {
@@ -366,13 +399,13 @@ func (x *CreateCollectionRequest) ParseCollectionID() (uuid.UUID, error) {
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil(), fmt.Errorf("parse collection_id %q: %w", id, err)
+		return uuid.Nil(), aip_go.NewFieldError(x, "collection_id", fmt.Errorf("parse collection_id %q: %w", id, err))
 	}
 	if parsed.String() != id {
-		return uuid.Nil(), fmt.Errorf("parse collection_id %q: not a canonical lowercase UUID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "collection_id", fmt.Errorf("parse collection_id %q: not a canonical lowercase UUID", id))
 	}
 	if parsed == uuid.Nil() {
-		return uuid.Nil(), fmt.Errorf("parse collection_id %q: the nil UUID is not an ID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "collection_id", fmt.Errorf("parse collection_id %q: the nil UUID is not an ID", id))
 	}
 	return parsed, nil
 }
@@ -385,6 +418,8 @@ func (x *CreateCollectionRequest) ParseCollectionID() (uuid.UUID, error) {
 // insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with OrganizationName{OrganizationID: id}.
+//
+// A failure is a *aip.FieldError naming organization_id.
 func (x *CreateOrganizationRequest) ParseOrganizationID() (uuid.UUID, error) {
 	id := x.GetOrganizationId()
 	if id == "" {
@@ -392,13 +427,13 @@ func (x *CreateOrganizationRequest) ParseOrganizationID() (uuid.UUID, error) {
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil(), fmt.Errorf("parse organization_id %q: %w", id, err)
+		return uuid.Nil(), aip_go.NewFieldError(x, "organization_id", fmt.Errorf("parse organization_id %q: %w", id, err))
 	}
 	if parsed.String() != id {
-		return uuid.Nil(), fmt.Errorf("parse organization_id %q: not a canonical lowercase UUID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "organization_id", fmt.Errorf("parse organization_id %q: not a canonical lowercase UUID", id))
 	}
 	if parsed == uuid.Nil() {
-		return uuid.Nil(), fmt.Errorf("parse organization_id %q: the nil UUID is not an ID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "organization_id", fmt.Errorf("parse organization_id %q: the nil UUID is not an ID", id))
 	}
 	return parsed, nil
 }
@@ -411,6 +446,8 @@ func (x *CreateOrganizationRequest) ParseOrganizationID() (uuid.UUID, error) {
 // insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with ItemName{ItemID: id}.
+//
+// A failure is a *aip.FieldError naming item_id.
 func (x *CreateItemRequest) ParseItemID() (uuid.UUID, error) {
 	id := x.GetItemId()
 	if id == "" {
@@ -418,13 +455,13 @@ func (x *CreateItemRequest) ParseItemID() (uuid.UUID, error) {
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil(), fmt.Errorf("parse item_id %q: %w", id, err)
+		return uuid.Nil(), aip_go.NewFieldError(x, "item_id", fmt.Errorf("parse item_id %q: %w", id, err))
 	}
 	if parsed.String() != id {
-		return uuid.Nil(), fmt.Errorf("parse item_id %q: not a canonical lowercase UUID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "item_id", fmt.Errorf("parse item_id %q: not a canonical lowercase UUID", id))
 	}
 	if parsed == uuid.Nil() {
-		return uuid.Nil(), fmt.Errorf("parse item_id %q: the nil UUID is not an ID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "item_id", fmt.Errorf("parse item_id %q: the nil UUID is not an ID", id))
 	}
 	return parsed, nil
 }

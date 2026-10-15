@@ -5,6 +5,7 @@ package namefield
 
 import (
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	strings "strings"
 )
 
@@ -89,12 +90,22 @@ func (n PersonName) ContainsWildcard() bool {
 	return n.PersonID == "-"
 }
 
-// ParsePersonName parses x.PersonName as PersonName.
+// ParsePersonName parses x.PersonName as PersonName. A failure is a
+// *aip.FieldError naming person_name.
 func (x *Person) ParsePersonName() (PersonName, error) {
-	return ParsePersonName(x.GetPersonName())
+	parsed, err := ParsePersonName(x.GetPersonName())
+	if err != nil {
+		return PersonName{}, aip_go.NewFieldError(x, "person_name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullPersonName parses x.PersonName as PersonName.
+// ParseFullPersonName parses x.PersonName as PersonName. A failure is a
+// *aip.FieldError naming person_name.
 func (x *Person) ParseFullPersonName() (PersonName, error) {
-	return ParseFullPersonName(x.GetPersonName())
+	parsed, err := ParseFullPersonName(x.GetPersonName())
+	if err != nil {
+		return PersonName{}, aip_go.NewFieldError(x, "person_name", err)
+	}
+	return parsed, nil
 }

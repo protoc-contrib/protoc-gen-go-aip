@@ -5,6 +5,7 @@ package v1
 
 import (
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	strings "strings"
 )
 
@@ -201,27 +202,52 @@ func (n ShelfName) BookName(
 	}
 }
 
-// ParseName parses x.Name as ShelfName.
+// ParseName parses x.Name as ShelfName. A failure is a
+// *aip.FieldError naming name.
 func (x *Shelf) ParseName() (ShelfName, error) {
-	return ParseShelfName(x.GetName())
+	parsed, err := ParseShelfName(x.GetName())
+	if err != nil {
+		return ShelfName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as ShelfName.
+// ParseFullName parses x.Name as ShelfName. A failure is a
+// *aip.FieldError naming name.
 func (x *Shelf) ParseFullName() (ShelfName, error) {
-	return ParseFullShelfName(x.GetName())
+	parsed, err := ParseFullShelfName(x.GetName())
+	if err != nil {
+		return ShelfName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseName parses x.Name as BookName.
+// ParseName parses x.Name as BookName. A failure is a
+// *aip.FieldError naming name.
 func (x *Book) ParseName() (BookName, error) {
-	return ParseBookName(x.GetName())
+	parsed, err := ParseBookName(x.GetName())
+	if err != nil {
+		return BookName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as BookName.
+// ParseFullName parses x.Name as BookName. A failure is a
+// *aip.FieldError naming name.
 func (x *Book) ParseFullName() (BookName, error) {
-	return ParseFullBookName(x.GetName())
+	parsed, err := ParseFullBookName(x.GetName())
+	if err != nil {
+		return BookName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseShelf parses x.Shelf as ShelfName.
+// ParseShelf parses x.Shelf as ShelfName. A failure is a
+// *aip.FieldError naming shelf.
 func (x *Book) ParseShelf() (ShelfName, error) {
-	return ParseShelfName(x.GetShelf())
+	parsed, err := ParseShelfName(x.GetShelf())
+	if err != nil {
+		return ShelfName{}, aip_go.NewFieldError(x, "shelf", err)
+	}
+	return parsed, nil
 }

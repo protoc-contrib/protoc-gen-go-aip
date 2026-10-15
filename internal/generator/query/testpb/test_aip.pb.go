@@ -6,6 +6,7 @@ package testpb
 import (
 	cel "cel.dev/cel-go/cel"
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	strings "strings"
 )
 
@@ -90,14 +91,24 @@ func (n BookName) ContainsWildcard() bool {
 	return n.BookID == "-"
 }
 
-// ParseName parses x.Name as BookName.
+// ParseName parses x.Name as BookName. A failure is a
+// *aip.FieldError naming name.
 func (x *Book) ParseName() (BookName, error) {
-	return ParseBookName(x.GetName())
+	parsed, err := ParseBookName(x.GetName())
+	if err != nil {
+		return BookName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as BookName.
+// ParseFullName parses x.Name as BookName. A failure is a
+// *aip.FieldError naming name.
 func (x *Book) ParseFullName() (BookName, error) {
-	return ParseFullBookName(x.GetName())
+	parsed, err := ParseFullBookName(x.GetName())
+	if err != nil {
+		return BookName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
 // ListBooksFilterEnv is the CEL environment used to compile `filter`
@@ -130,7 +141,8 @@ func init() {
 // ParseFilter compiles the CEL `filter` expression on ListBooksRequest against
 // [ListBooksFilterEnv] and rejects one that does not evaluate to bool.
 // It returns (nil, nil) when no filter was provided, a blank one included.
-// The returned error is suitable for a connect InvalidArgument response;
+// The returned error is a *aip.FieldError naming filter, suitable for a
+// connect InvalidArgument response;
 // the *cel.Ast can be passed straight to pgxcel.Where.
 func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error) {
 	if strings.TrimSpace(x.GetFilter()) == "" {
@@ -138,12 +150,12 @@ func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error) {
 	}
 	ast, issues := ListBooksFilterEnv.Compile(x.GetFilter())
 	if err := issues.Err(); err != nil {
-		return nil, fmt.Errorf("invalid filter: %w", err)
+		return nil, aip_go.NewFieldError(x, "filter", fmt.Errorf("invalid filter: %w", err))
 	}
 	// A filter is a predicate; anything else would only fail further down,
 	// in the query layer or the database, with a less clear error.
 	if !ast.OutputType().IsExactType(cel.BoolType) {
-		return nil, fmt.Errorf("invalid filter: must evaluate to bool, got %s", ast.OutputType())
+		return nil, aip_go.NewFieldError(x, "filter", fmt.Errorf("invalid filter: must evaluate to bool, got %s", ast.OutputType()))
 	}
 	return ast, nil
 }

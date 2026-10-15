@@ -179,7 +179,9 @@ var _ = Describe("resource.Generate", func() {
 
 		out := fileByName(resp, "namefield/namefield_aip.pb.go")
 		Expect(out).To(ContainSubstring("func (x *Person) ParsePersonName() (PersonName, error)"))
-		Expect(out).To(ContainSubstring("return ParsePersonName(x.GetPersonName())"))
+		Expect(out).To(ContainSubstring("parsed, err := ParsePersonName(x.GetPersonName())"))
+		// A failure names the proto field the method read, not its Go name.
+		Expect(out).To(ContainSubstring(`aip_go.NewFieldError(x, "person_name", err)`))
 	})
 
 	It("emits parsers for file-level resource_definition without a message", func() {
@@ -299,7 +301,8 @@ var _ = Describe("resource.Generate validation", func() {
 		Expect(err).NotTo(HaveOccurred())
 		out := fileByName(resp, "simple/simple_aip.pb.go")
 		Expect(out).To(ContainSubstring("func (x *Thing) ParseFullName() (ThingName, error)"))
-		Expect(out).To(ContainSubstring("return ParseFullThingName(x.GetName())"))
+		Expect(out).To(ContainSubstring("parsed, err := ParseFullThingName(x.GetName())"))
+		Expect(out).To(ContainSubstring(`aip_go.NewFieldError(x, "name", err)`))
 	})
 })
 

@@ -5,6 +5,7 @@ package simple
 
 import (
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	strings "strings"
 )
 
@@ -282,32 +283,62 @@ func (n ProjectName) ProjectThingName(
 	}
 }
 
-// ParseName parses x.Name as ThingName.
+// ParseName parses x.Name as ThingName. A failure is a
+// *aip.FieldError naming name.
 func (x *Thing) ParseName() (ThingName, error) {
-	return ParseThingName(x.GetName())
+	parsed, err := ParseThingName(x.GetName())
+	if err != nil {
+		return ThingName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as ThingName.
+// ParseFullName parses x.Name as ThingName. A failure is a
+// *aip.FieldError naming name.
 func (x *Thing) ParseFullName() (ThingName, error) {
-	return ParseFullThingName(x.GetName())
+	parsed, err := ParseFullThingName(x.GetName())
+	if err != nil {
+		return ThingName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseName parses x.Name as ProjectName.
+// ParseName parses x.Name as ProjectName. A failure is a
+// *aip.FieldError naming name.
 func (x *Project) ParseName() (ProjectName, error) {
-	return ParseProjectName(x.GetName())
+	parsed, err := ParseProjectName(x.GetName())
+	if err != nil {
+		return ProjectName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as ProjectName.
+// ParseFullName parses x.Name as ProjectName. A failure is a
+// *aip.FieldError naming name.
 func (x *Project) ParseFullName() (ProjectName, error) {
-	return ParseFullProjectName(x.GetName())
+	parsed, err := ParseFullProjectName(x.GetName())
+	if err != nil {
+		return ProjectName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseName parses x.Name as ProjectThingName.
+// ParseName parses x.Name as ProjectThingName. A failure is a
+// *aip.FieldError naming name.
 func (x *ProjectThing) ParseName() (ProjectThingName, error) {
-	return ParseProjectThingName(x.GetName())
+	parsed, err := ParseProjectThingName(x.GetName())
+	if err != nil {
+		return ProjectThingName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as ProjectThingName.
+// ParseFullName parses x.Name as ProjectThingName. A failure is a
+// *aip.FieldError naming name.
 func (x *ProjectThing) ParseFullName() (ProjectThingName, error) {
-	return ParseFullProjectThingName(x.GetName())
+	parsed, err := ParseFullProjectThingName(x.GetName())
+	if err != nil {
+		return ProjectThingName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }

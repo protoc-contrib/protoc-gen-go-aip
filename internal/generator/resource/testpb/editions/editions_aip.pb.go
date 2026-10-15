@@ -5,6 +5,7 @@ package editions
 
 import (
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	strings "strings"
 	uuid "uuid"
 )
@@ -105,19 +106,34 @@ func ParseGadgetID(s string) (uuid.UUID, error) {
 	return parsed.GadgetID, err
 }
 
-// ParseName parses x.Name as GadgetName.
+// ParseName parses x.Name as GadgetName. A failure is a
+// *aip.FieldError naming name.
 func (x *Gadget) ParseName() (GadgetName, error) {
-	return ParseGadgetName(x.GetName())
+	parsed, err := ParseGadgetName(x.GetName())
+	if err != nil {
+		return GadgetName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as GadgetName.
+// ParseFullName parses x.Name as GadgetName. A failure is a
+// *aip.FieldError naming name.
 func (x *Gadget) ParseFullName() (GadgetName, error) {
-	return ParseFullGadgetName(x.GetName())
+	parsed, err := ParseFullGadgetName(x.GetName())
+	if err != nil {
+		return GadgetName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseTwin parses x.Twin as GadgetName.
+// ParseTwin parses x.Twin as GadgetName. A failure is a
+// *aip.FieldError naming twin.
 func (x *Gadget) ParseTwin() (GadgetName, error) {
-	return ParseGadgetName(x.GetTwin())
+	parsed, err := ParseGadgetName(x.GetTwin())
+	if err != nil {
+		return GadgetName{}, aip_go.NewFieldError(x, "twin", err)
+	}
+	return parsed, nil
 }
 
 // ParseGadgetID returns the ID the caller proposed for the "example.com/Gadget"
@@ -128,6 +144,8 @@ func (x *Gadget) ParseTwin() (GadgetName, error) {
 // insertion order, a version 4 reveals nothing — so uuid.Nil() is handed back
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with GadgetName{GadgetID: id}.
+//
+// A failure is a *aip.FieldError naming gadget_id.
 func (x *CreateGadgetRequest) ParseGadgetID() (uuid.UUID, error) {
 	id := x.GetGadgetId()
 	if id == "" {
@@ -135,13 +153,13 @@ func (x *CreateGadgetRequest) ParseGadgetID() (uuid.UUID, error) {
 	}
 	parsed, err := uuid.Parse(id)
 	if err != nil {
-		return uuid.Nil(), fmt.Errorf("parse gadget_id %q: %w", id, err)
+		return uuid.Nil(), aip_go.NewFieldError(x, "gadget_id", fmt.Errorf("parse gadget_id %q: %w", id, err))
 	}
 	if parsed.String() != id {
-		return uuid.Nil(), fmt.Errorf("parse gadget_id %q: not a canonical lowercase UUID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "gadget_id", fmt.Errorf("parse gadget_id %q: not a canonical lowercase UUID", id))
 	}
 	if parsed == uuid.Nil() {
-		return uuid.Nil(), fmt.Errorf("parse gadget_id %q: the nil UUID is not an ID", id)
+		return uuid.Nil(), aip_go.NewFieldError(x, "gadget_id", fmt.Errorf("parse gadget_id %q: the nil UUID is not an ID", id))
 	}
 	return parsed, nil
 }

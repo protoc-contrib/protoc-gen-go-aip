@@ -1,11 +1,13 @@
 package testpb_test
 
 import (
+	"errors"
 	stduuid "uuid"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/protoc-contrib/aip-go"
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/uuid"
 )
 
@@ -75,11 +77,15 @@ var _ = Describe("UUID-typed resource names", func() {
 			_, err := (&uuid.CreateCollectionRequest{CollectionId: "not-a-uuid"}).ParseCollectionID()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(`parse collection_id "not-a-uuid":`))
+
+			var field *aip.FieldError
+			Expect(errors.As(err, &field)).To(BeTrue(), "%v is not a *aip.FieldError", err)
+			Expect(field.Field()).To(Equal("collection_id"))
 		})
 
 		It("refuses a proposed ID that is not a canonical lowercase UUID", func() {
 			_, err := (&uuid.CreateCollectionRequest{CollectionId: "11111111-1111-4111-8111-11111111111A"}).ParseCollectionID()
-			Expect(err).To(MatchError(`parse collection_id "11111111-1111-4111-8111-11111111111A": not a canonical lowercase UUID`))
+			Expect(err).To(MatchError(`collection_id: parse collection_id "11111111-1111-4111-8111-11111111111A": not a canonical lowercase UUID`))
 		})
 
 		It("refuses the nil UUID, which would read as no ID at all", func() {

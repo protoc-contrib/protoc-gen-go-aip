@@ -1,9 +1,12 @@
 package query_test
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/protoc-contrib/aip-go"
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/query/testpb"
 )
 
@@ -48,6 +51,10 @@ var _ = Describe("Generated AIP helpers", func() {
 			func(filter string) {
 				_, err := (&testpb.ListBooksRequest{Filter: filter}).ParseFilter()
 				Expect(err).To(MatchError(ContainSubstring("invalid filter")))
+
+				var field *aip.FieldError
+				Expect(errors.As(err, &field)).To(BeTrue(), "%v is not a *aip.FieldError", err)
+				Expect(field.Field()).To(Equal("filter"))
 			},
 			Entry("undeclared ident", `isbn == "9780134190440"`),
 			// A field with no CEL type is not declared, so it is undeclared
@@ -68,6 +75,10 @@ var _ = Describe("Generated AIP helpers", func() {
 			func(filter string) {
 				_, err := (&testpb.ListBooksRequest{Filter: filter}).ParseFilter()
 				Expect(err).To(MatchError(ContainSubstring("invalid filter")))
+
+				var field *aip.FieldError
+				Expect(errors.As(err, &field)).To(BeTrue(), "%v is not a *aip.FieldError", err)
+				Expect(field.Field()).To(Equal("filter"))
 			},
 			Entry("exists", "[1, 2].exists(x, x > 1)"),
 			Entry("all", "[1, 2].all(x, x > 0)"),

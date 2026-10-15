@@ -6,6 +6,7 @@ package multipattern
 import (
 	errors "errors"
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	strings "strings"
 )
 
@@ -423,32 +424,62 @@ func ParseFullBookName(s string) (BookName, error) {
 	return ParseBookName(strings.TrimPrefix(s, "//example.com/"))
 }
 
-// ParseName parses x.Name as PublisherName.
+// ParseName parses x.Name as PublisherName. A failure is a
+// *aip.FieldError naming name.
 func (x *Publisher) ParseName() (PublisherName, error) {
-	return ParsePublisherName(x.GetName())
+	parsed, err := ParsePublisherName(x.GetName())
+	if err != nil {
+		return PublisherName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as PublisherName.
+// ParseFullName parses x.Name as PublisherName. A failure is a
+// *aip.FieldError naming name.
 func (x *Publisher) ParseFullName() (PublisherName, error) {
-	return ParseFullPublisherName(x.GetName())
+	parsed, err := ParseFullPublisherName(x.GetName())
+	if err != nil {
+		return PublisherName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseName parses x.Name as AuthorName.
+// ParseName parses x.Name as AuthorName. A failure is a
+// *aip.FieldError naming name.
 func (x *Author) ParseName() (AuthorName, error) {
-	return ParseAuthorName(x.GetName())
+	parsed, err := ParseAuthorName(x.GetName())
+	if err != nil {
+		return AuthorName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as AuthorName.
+// ParseFullName parses x.Name as AuthorName. A failure is a
+// *aip.FieldError naming name.
 func (x *Author) ParseFullName() (AuthorName, error) {
-	return ParseFullAuthorName(x.GetName())
+	parsed, err := ParseFullAuthorName(x.GetName())
+	if err != nil {
+		return AuthorName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseName parses x.Name as BookName.
+// ParseName parses x.Name as BookName. A failure is a
+// *aip.FieldError naming name.
 func (x *Book) ParseName() (BookName, error) {
-	return ParseBookName(x.GetName())
+	parsed, err := ParseBookName(x.GetName())
+	if err != nil {
+		return nil, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as BookName.
+// ParseFullName parses x.Name as BookName. A failure is a
+// *aip.FieldError naming name.
 func (x *Book) ParseFullName() (BookName, error) {
-	return ParseFullBookName(x.GetName())
+	parsed, err := ParseFullBookName(x.GetName())
+	if err != nil {
+		return nil, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }

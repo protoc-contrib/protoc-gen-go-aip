@@ -1,9 +1,11 @@
 package testpb_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/protoc-contrib/aip-go"
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/crosspackage"
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/external"
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/multipattern"
@@ -113,6 +115,27 @@ func TestSimple_ParseMethod(t *testing.T) {
 	}
 	if got != (simple.ThingName{ThingID: "foo"}) {
 		t.Fatalf("got %+v", got)
+	}
+}
+
+// TestSimple_ParseMethodNamesItsField checks that a failed parse is a
+// *aip.FieldError naming the proto field the method read, wrapping the same
+// error the standalone parser returns, and that it holds for a message that is
+// nil: the getter is nil-safe, and so is the field's path.
+func TestSimple_ParseMethodNamesItsField(t *testing.T) {
+	for _, thing := range []*simple.Thing{{Name: "thing/foo"}, nil} {
+		_, err := thing.ParseName()
+		var field *aip.FieldError
+		if !errors.As(err, &field) {
+			t.Fatalf("%v is not a *aip.FieldError", err)
+		}
+		if got, want := field.Field(), "name"; got != want {
+			t.Errorf("Field: got %q, want %q", got, want)
+		}
+		_, want := simple.ParseThingName(thing.GetName())
+		if !errors.Is(err, field.Err) || field.Err.Error() != want.Error() {
+			t.Errorf("wraps %v, want %v", field.Err, want)
+		}
 	}
 }
 

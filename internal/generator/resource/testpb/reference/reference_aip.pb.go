@@ -5,6 +5,7 @@ package reference
 
 import (
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	external "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/external"
 	simple "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/simple"
 	strings "strings"
@@ -172,42 +173,82 @@ func (n BarName) ContainsWildcard() bool {
 	return n.BarID == "-"
 }
 
-// ParseName parses x.Name as FooName.
+// ParseName parses x.Name as FooName. A failure is a
+// *aip.FieldError naming name.
 func (x *Foo) ParseName() (FooName, error) {
-	return ParseFooName(x.GetName())
+	parsed, err := ParseFooName(x.GetName())
+	if err != nil {
+		return FooName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as FooName.
+// ParseFullName parses x.Name as FooName. A failure is a
+// *aip.FieldError naming name.
 func (x *Foo) ParseFullName() (FooName, error) {
-	return ParseFullFooName(x.GetName())
+	parsed, err := ParseFullFooName(x.GetName())
+	if err != nil {
+		return FooName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseBar parses x.Bar as BarName.
+// ParseBar parses x.Bar as BarName. A failure is a
+// *aip.FieldError naming bar.
 func (x *Foo) ParseBar() (BarName, error) {
-	return ParseBarName(x.GetBar())
+	parsed, err := ParseBarName(x.GetBar())
+	if err != nil {
+		return BarName{}, aip_go.NewFieldError(x, "bar", err)
+	}
+	return parsed, nil
 }
 
-// ParseName parses x.Name as BarName.
+// ParseName parses x.Name as BarName. A failure is a
+// *aip.FieldError naming name.
 func (x *Bar) ParseName() (BarName, error) {
-	return ParseBarName(x.GetName())
+	parsed, err := ParseBarName(x.GetName())
+	if err != nil {
+		return BarName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as BarName.
+// ParseFullName parses x.Name as BarName. A failure is a
+// *aip.FieldError naming name.
 func (x *Bar) ParseFullName() (BarName, error) {
-	return ParseFullBarName(x.GetName())
+	parsed, err := ParseFullBarName(x.GetName())
+	if err != nil {
+		return BarName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFoo parses x.Foo as FooName.
+// ParseFoo parses x.Foo as FooName. A failure is a
+// *aip.FieldError naming foo.
 func (x *Bar) ParseFoo() (FooName, error) {
-	return ParseFooName(x.GetFoo())
+	parsed, err := ParseFooName(x.GetFoo())
+	if err != nil {
+		return FooName{}, aip_go.NewFieldError(x, "foo", err)
+	}
+	return parsed, nil
 }
 
-// ParseThingName parses x.ThingName as ThingName.
+// ParseThingName parses x.ThingName as ThingName. A failure is a
+// *aip.FieldError naming thing_name.
 func (x *CrossPackage) ParseThingName() (simple.ThingName, error) {
-	return simple.ParseThingName(x.GetThingName())
+	parsed, err := simple.ParseThingName(x.GetThingName())
+	if err != nil {
+		return simple.ThingName{}, aip_go.NewFieldError(x, "thing_name", err)
+	}
+	return parsed, nil
 }
 
-// ParseExternalName parses x.ExternalName as ExternalName.
+// ParseExternalName parses x.ExternalName as ExternalName. A failure is a
+// *aip.FieldError naming external_name.
 func (x *CrossPackageExternal) ParseExternalName() (external.ExternalName, error) {
-	return external.ParseExternalName(x.GetExternalName())
+	parsed, err := external.ParseExternalName(x.GetExternalName())
+	if err != nil {
+		return external.ExternalName{}, aip_go.NewFieldError(x, "external_name", err)
+	}
+	return parsed, nil
 }

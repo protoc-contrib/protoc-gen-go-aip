@@ -5,6 +5,7 @@ package crosspackage
 
 import (
 	fmt "fmt"
+	aip_go "github.com/protoc-contrib/aip-go"
 	simple "github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/simple"
 	strings "strings"
 )
@@ -111,12 +112,22 @@ func (n GadgetName) Parent() simple.ProjectName {
 	}
 }
 
-// ParseName parses x.Name as GadgetName.
+// ParseName parses x.Name as GadgetName. A failure is a
+// *aip.FieldError naming name.
 func (x *Gadget) ParseName() (GadgetName, error) {
-	return ParseGadgetName(x.GetName())
+	parsed, err := ParseGadgetName(x.GetName())
+	if err != nil {
+		return GadgetName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
 
-// ParseFullName parses x.Name as GadgetName.
+// ParseFullName parses x.Name as GadgetName. A failure is a
+// *aip.FieldError naming name.
 func (x *Gadget) ParseFullName() (GadgetName, error) {
-	return ParseFullGadgetName(x.GetName())
+	parsed, err := ParseFullGadgetName(x.GetName())
+	if err != nil {
+		return GadgetName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
 }
