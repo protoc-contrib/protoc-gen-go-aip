@@ -45,6 +45,14 @@ A `.proto` with neither gets no companion.
   `Parse<Type>Name` that tries each pattern in declaration order. The
   interface carries `Validate()`, `Type()`, `Pattern()` and
   `ContainsWildcard()` too, so a parsed name needs no type switch.
+- **Pattern validation** — every `google.api.resource` pattern is compiled
+  with aip-go's `CompileResourcePattern` before anything is generated, as
+  protoc-gen-rust-aip does, so a schema that spells one wrong fails
+  `buf generate` naming the message, the resource type and the pattern:
+  an empty segment (`books//{book}`), path-template syntax
+  (`{book=**}`), a stray brace, a literal that is not camelCase
+  (`book_shelves`), a variable that is not snake_case (`{bookId}`), or a
+  duplicate variable.
 - **`Parent()` navigation** — child resources get a `Parent()` method
   returning the matched parent's generated type. Each pattern of a
   multi-pattern resource returns its own parent type.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	aip "github.com/protoc-contrib/aip-go"
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
@@ -37,7 +38,7 @@ func newMessageResource(m *protogen.Message) (*resource, error) {
 
 	r, err := newBareResource(m.GoIdent.GoImportPath, d)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: %w", m.GoIdent, err)
 	}
 	r.Message = m
 
@@ -107,6 +108,14 @@ func newBareResource(importPath protogen.GoImportPath, d *annotations.ResourceDe
 	}
 	patterns := make([]pattern, 0, len(d.Pattern))
 	for _, s := range d.Pattern {
+		// aip-go's compiler is what the generated code's patterns are checked
+		// against at runtime and what protoc-gen-rust-aip validates with: a
+		// pattern it refuses -- an empty segment, path-template syntax such as
+		// {book=**}, a literal or variable that is not spelled as AIP-122 asks --
+		// would otherwise generate a parser that is wrong or does not compile.
+		if _, err := aip.CompileResourcePattern(s); err != nil {
+			return nil, fmt.Errorf("resource %q: %w", d.Type, err)
+		}
 		p, err := newPattern(s)
 		if err != nil {
 			return nil, fmt.Errorf("resource %q: %w", d.Type, err)

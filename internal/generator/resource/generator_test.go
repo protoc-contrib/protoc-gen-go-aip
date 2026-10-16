@@ -462,6 +462,30 @@ var _ = Describe("resource.Generate schema errors", func() {
 		Expect(err.Error()).To(ContainSubstring("schema/b.proto"))
 	})
 
+	It("errors on a malformed pattern, naming the message, the type and the pattern", func() {
+		for _, bad := range []string{
+			"publishers//books",
+			"publishers/{publisher",
+			"publishers/publisher}",
+			"publishers/{}",
+			"books/{book}/editions/{book}",
+			// AIP-122 spelling: a camelCase literal, a snake_case variable, and
+			// no path-template syntax.
+			"book_shelves/{shelf}",
+			"Publishers/{publisher}",
+			"books/{bookId}",
+			"books/{book=**}",
+		} {
+			_, err := runGeneratorWith(nil, []*descriptorpb.FileDescriptorProto{
+				schemaFile("schema/a.proto", resourceMessage("Widget", "example.com/Widget", bad, str, optional)),
+			}, simplepb.File_simple_simple_proto)
+			Expect(err).To(HaveOccurred(), "expected %q to be rejected", bad)
+			Expect(err).To(MatchError(ContainSubstring("Widget")), bad)
+			Expect(err).To(MatchError(ContainSubstring(`resource "example.com/Widget"`)), bad)
+			Expect(err).To(MatchError(ContainSubstring(bad)), bad)
+		}
+	})
+
 	It("errors when the name field is not a string", func() {
 		_, err := runGeneratorWith(nil, []*descriptorpb.FileDescriptorProto{
 			schemaFile("schema/a.proto", resourceMessage("Widget", "example.com/Widget", "widgets/{widget}",
