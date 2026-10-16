@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.6.1...v0.6.2) (2026-10-16)
+
+
+### Bug Fixes
+
+* name the aip-go import in the docs as the code does ([#82](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/82)) ([9d7d757](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/9d7d757e0cc9af467bef5bedf9d3cad0e4815456))
+
 ## [0.6.1](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.6.0...v0.6.1) (2026-10-16)
 
 
