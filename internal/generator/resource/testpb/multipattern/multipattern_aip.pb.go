@@ -425,7 +425,7 @@ func ParseFullBookName(s string) (BookName, error) {
 }
 
 // ParseName parses x.Name as PublisherName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Publisher) ParseName() (PublisherName, error) {
 	parsed, err := ParsePublisherName(x.GetName())
 	if err != nil {
@@ -435,7 +435,7 @@ func (x *Publisher) ParseName() (PublisherName, error) {
 }
 
 // ParseFullName parses x.Name as PublisherName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Publisher) ParseFullName() (PublisherName, error) {
 	parsed, err := ParseFullPublisherName(x.GetName())
 	if err != nil {
@@ -445,7 +445,7 @@ func (x *Publisher) ParseFullName() (PublisherName, error) {
 }
 
 // ParseName parses x.Name as AuthorName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Author) ParseName() (AuthorName, error) {
 	parsed, err := ParseAuthorName(x.GetName())
 	if err != nil {
@@ -455,7 +455,7 @@ func (x *Author) ParseName() (AuthorName, error) {
 }
 
 // ParseFullName parses x.Name as AuthorName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Author) ParseFullName() (AuthorName, error) {
 	parsed, err := ParseFullAuthorName(x.GetName())
 	if err != nil {
@@ -465,7 +465,7 @@ func (x *Author) ParseFullName() (AuthorName, error) {
 }
 
 // ParseName parses x.Name as BookName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Book) ParseName() (BookName, error) {
 	parsed, err := ParseBookName(x.GetName())
 	if err != nil {
@@ -475,7 +475,7 @@ func (x *Book) ParseName() (BookName, error) {
 }
 
 // ParseFullName parses x.Name as BookName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Book) ParseFullName() (BookName, error) {
 	parsed, err := ParseFullBookName(x.GetName())
 	if err != nil {

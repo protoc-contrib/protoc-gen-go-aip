@@ -92,7 +92,7 @@ func (n BookName) ContainsWildcard() bool {
 }
 
 // ParseName parses x.Name as BookName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Book) ParseName() (BookName, error) {
 	parsed, err := ParseBookName(x.GetName())
 	if err != nil {
@@ -102,7 +102,7 @@ func (x *Book) ParseName() (BookName, error) {
 }
 
 // ParseFullName parses x.Name as BookName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Book) ParseFullName() (BookName, error) {
 	parsed, err := ParseFullBookName(x.GetName())
 	if err != nil {
@@ -141,7 +141,7 @@ func init() {
 // ParseFilter compiles the CEL `filter` expression on ListBooksRequest against
 // [ListBooksFilterEnv] and rejects one that does not evaluate to bool.
 // It returns (nil, nil) when no filter was provided, a blank one included.
-// The returned error is a *aip.FieldError naming filter, suitable for a
+// The returned error is a *aip_go.FieldError naming filter, suitable for a
 // connect InvalidArgument response;
 // the *cel.Ast can be passed straight to pgxcel.Where.
 func (x *ListBooksRequest) ParseFilter() (*cel.Ast, error) {

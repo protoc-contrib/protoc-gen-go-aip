@@ -242,7 +242,7 @@ func emitParseFilter(g *protogen.GeneratedFile, r requestInfo) {
 	g.P("// ParseFilter compiles the CEL `filter` expression on ", reqName, " against")
 	g.P("// [", prefix, "FilterEnv] and rejects one that does not evaluate to bool.")
 	g.P("// It returns (nil, nil) when no filter was provided, a blank one included.")
-	g.P("// The returned error is a *aip.FieldError naming filter, suitable for a")
+	g.P("// The returned error is a *", aipPackage.Ident("FieldError"), " naming filter, suitable for a")
 	g.P("// connect InvalidArgument response;")
 	g.P("// the *cel.Ast can be passed straight to pgxcel.Where.")
 	g.P("func (x *", reqName, ") ParseFilter() (*", celPackage.Ident("Ast"), ", error) {")

@@ -113,7 +113,7 @@ func (n GadgetName) Parent() simple.ProjectName {
 }
 
 // ParseName parses x.Name as GadgetName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Gadget) ParseName() (GadgetName, error) {
 	parsed, err := ParseGadgetName(x.GetName())
 	if err != nil {
@@ -123,7 +123,7 @@ func (x *Gadget) ParseName() (GadgetName, error) {
 }
 
 // ParseFullName parses x.Name as GadgetName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Gadget) ParseFullName() (GadgetName, error) {
 	parsed, err := ParseFullGadgetName(x.GetName())
 	if err != nil {

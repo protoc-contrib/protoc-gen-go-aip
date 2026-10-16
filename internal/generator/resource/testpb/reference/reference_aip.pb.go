@@ -174,7 +174,7 @@ func (n BarName) ContainsWildcard() bool {
 }
 
 // ParseName parses x.Name as FooName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Foo) ParseName() (FooName, error) {
 	parsed, err := ParseFooName(x.GetName())
 	if err != nil {
@@ -184,7 +184,7 @@ func (x *Foo) ParseName() (FooName, error) {
 }
 
 // ParseFullName parses x.Name as FooName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Foo) ParseFullName() (FooName, error) {
 	parsed, err := ParseFullFooName(x.GetName())
 	if err != nil {
@@ -194,7 +194,7 @@ func (x *Foo) ParseFullName() (FooName, error) {
 }
 
 // ParseBar parses x.Bar as BarName. A failure is a
-// *aip.FieldError naming bar.
+// *aip_go.FieldError naming bar.
 func (x *Foo) ParseBar() (BarName, error) {
 	parsed, err := ParseBarName(x.GetBar())
 	if err != nil {
@@ -204,7 +204,7 @@ func (x *Foo) ParseBar() (BarName, error) {
 }
 
 // ParseName parses x.Name as BarName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Bar) ParseName() (BarName, error) {
 	parsed, err := ParseBarName(x.GetName())
 	if err != nil {
@@ -214,7 +214,7 @@ func (x *Bar) ParseName() (BarName, error) {
 }
 
 // ParseFullName parses x.Name as BarName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Bar) ParseFullName() (BarName, error) {
 	parsed, err := ParseFullBarName(x.GetName())
 	if err != nil {
@@ -224,7 +224,7 @@ func (x *Bar) ParseFullName() (BarName, error) {
 }
 
 // ParseFoo parses x.Foo as FooName. A failure is a
-// *aip.FieldError naming foo.
+// *aip_go.FieldError naming foo.
 func (x *Bar) ParseFoo() (FooName, error) {
 	parsed, err := ParseFooName(x.GetFoo())
 	if err != nil {
@@ -234,7 +234,7 @@ func (x *Bar) ParseFoo() (FooName, error) {
 }
 
 // ParseThingName parses x.ThingName as ThingName. A failure is a
-// *aip.FieldError naming thing_name.
+// *aip_go.FieldError naming thing_name.
 func (x *CrossPackage) ParseThingName() (simple.ThingName, error) {
 	parsed, err := simple.ParseThingName(x.GetThingName())
 	if err != nil {
@@ -244,7 +244,7 @@ func (x *CrossPackage) ParseThingName() (simple.ThingName, error) {
 }
 
 // ParseExternalName parses x.ExternalName as ExternalName. A failure is a
-// *aip.FieldError naming external_name.
+// *aip_go.FieldError naming external_name.
 func (x *CrossPackageExternal) ParseExternalName() (external.ExternalName, error) {
 	parsed, err := external.ParseExternalName(x.GetExternalName())
 	if err != nil {

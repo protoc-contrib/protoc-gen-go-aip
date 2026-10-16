@@ -209,7 +209,10 @@ The methods on a message name the field they read: a failure is a
 the parse failure. A handler that answers `InvalidArgument` takes the field from
 the error rather than typing it again; the free `Parse<Resource>Name` functions
 have no field and return their error bare. The generated code imports aip-go, so
-a module that compiles it requires `github.com/protoc-contrib/aip-go`.
+a module that compiles it requires `github.com/protoc-contrib/aip-go`. The file
+imports it as `aip_go`, the name protogen derives from the path's last element
+(`aip-go`) and the one its doc comments use, since protogen has no way to pick
+another; the package itself is named `aip`.
 
 Call sites stay terse:
 
