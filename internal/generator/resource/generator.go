@@ -380,7 +380,7 @@ func emitCreateID(g *protogen.GeneratedFile, c createID) {
 	g.P("// for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,")
 	g.P("// not a resource name: build the name with ", c.Resource.ParsedType.GoName, "{", c.Segment.FieldName(), ": id}.")
 	g.P("//")
-	g.P("// A failure is a *aip.FieldError naming ", protoField, ".")
+	g.P("// A failure is a *", aipPackage.Ident("FieldError"), " naming ", protoField, ".")
 	g.P("func (x *", c.Request.GoIdent, ") ", method, "() (", uuidPackage.Ident("UUID"), ", error) {")
 	g.P("id := x.Get", c.Field.GoName, "()")
 	g.P(`if id == "" {`)
@@ -1101,7 +1101,7 @@ func fieldReference(field *protogen.Field, reg *registry, opts *Options) (refere
 
 func emitReference(g *protogen.GeneratedFile, ref reference) {
 	g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, ". A failure is a")
-	g.P("// *aip.FieldError naming ", ref.ProtoField, ".")
+	g.P("// *", aipPackage.Ident("FieldError"), " naming ", ref.ProtoField, ".")
 	g.P("func (x *", ref.Owner.GoIdent, ") ", ref.MethodName, "() (", ref.ParsedType, ", error) {")
 	// The getter, not the field: an explicit-presence field — proto2
 	// `optional`, editions' default — is a *string, and the opaque API has no

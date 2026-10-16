@@ -203,7 +203,7 @@ func (n ShelfName) BookName(
 }
 
 // ParseName parses x.Name as ShelfName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Shelf) ParseName() (ShelfName, error) {
 	parsed, err := ParseShelfName(x.GetName())
 	if err != nil {
@@ -213,7 +213,7 @@ func (x *Shelf) ParseName() (ShelfName, error) {
 }
 
 // ParseFullName parses x.Name as ShelfName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Shelf) ParseFullName() (ShelfName, error) {
 	parsed, err := ParseFullShelfName(x.GetName())
 	if err != nil {
@@ -223,7 +223,7 @@ func (x *Shelf) ParseFullName() (ShelfName, error) {
 }
 
 // ParseName parses x.Name as BookName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Book) ParseName() (BookName, error) {
 	parsed, err := ParseBookName(x.GetName())
 	if err != nil {
@@ -233,7 +233,7 @@ func (x *Book) ParseName() (BookName, error) {
 }
 
 // ParseFullName parses x.Name as BookName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Book) ParseFullName() (BookName, error) {
 	parsed, err := ParseFullBookName(x.GetName())
 	if err != nil {
@@ -243,7 +243,7 @@ func (x *Book) ParseFullName() (BookName, error) {
 }
 
 // ParseShelf parses x.Shelf as ShelfName. A failure is a
-// *aip.FieldError naming shelf.
+// *aip_go.FieldError naming shelf.
 func (x *Book) ParseShelf() (ShelfName, error) {
 	parsed, err := ParseShelfName(x.GetShelf())
 	if err != nil {

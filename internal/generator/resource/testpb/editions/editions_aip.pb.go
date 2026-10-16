@@ -107,7 +107,7 @@ func ParseGadgetID(s string) (uuid.UUID, error) {
 }
 
 // ParseName parses x.Name as GadgetName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Gadget) ParseName() (GadgetName, error) {
 	parsed, err := ParseGadgetName(x.GetName())
 	if err != nil {
@@ -117,7 +117,7 @@ func (x *Gadget) ParseName() (GadgetName, error) {
 }
 
 // ParseFullName parses x.Name as GadgetName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Gadget) ParseFullName() (GadgetName, error) {
 	parsed, err := ParseFullGadgetName(x.GetName())
 	if err != nil {
@@ -127,7 +127,7 @@ func (x *Gadget) ParseFullName() (GadgetName, error) {
 }
 
 // ParseTwin parses x.Twin as GadgetName. A failure is a
-// *aip.FieldError naming twin.
+// *aip_go.FieldError naming twin.
 func (x *Gadget) ParseTwin() (GadgetName, error) {
 	parsed, err := ParseGadgetName(x.GetTwin())
 	if err != nil {
@@ -145,7 +145,7 @@ func (x *Gadget) ParseTwin() (GadgetName, error) {
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with GadgetName{GadgetID: id}.
 //
-// A failure is a *aip.FieldError naming gadget_id.
+// A failure is a *aip_go.FieldError naming gadget_id.
 func (x *CreateGadgetRequest) ParseGadgetID() (uuid.UUID, error) {
 	id := x.GetGadgetId()
 	if id == "" {

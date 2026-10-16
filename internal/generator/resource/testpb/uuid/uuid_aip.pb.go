@@ -323,7 +323,7 @@ func (n OrganizationName) ItemName(
 }
 
 // ParseName parses x.Name as CollectionName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Collection) ParseName() (CollectionName, error) {
 	parsed, err := ParseCollectionName(x.GetName())
 	if err != nil {
@@ -333,7 +333,7 @@ func (x *Collection) ParseName() (CollectionName, error) {
 }
 
 // ParseFullName parses x.Name as CollectionName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Collection) ParseFullName() (CollectionName, error) {
 	parsed, err := ParseFullCollectionName(x.GetName())
 	if err != nil {
@@ -343,7 +343,7 @@ func (x *Collection) ParseFullName() (CollectionName, error) {
 }
 
 // ParseName parses x.Name as OrganizationName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Organization) ParseName() (OrganizationName, error) {
 	parsed, err := ParseOrganizationName(x.GetName())
 	if err != nil {
@@ -353,7 +353,7 @@ func (x *Organization) ParseName() (OrganizationName, error) {
 }
 
 // ParseFullName parses x.Name as OrganizationName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Organization) ParseFullName() (OrganizationName, error) {
 	parsed, err := ParseFullOrganizationName(x.GetName())
 	if err != nil {
@@ -363,7 +363,7 @@ func (x *Organization) ParseFullName() (OrganizationName, error) {
 }
 
 // ParseName parses x.Name as ItemName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Item) ParseName() (ItemName, error) {
 	parsed, err := ParseItemName(x.GetName())
 	if err != nil {
@@ -373,7 +373,7 @@ func (x *Item) ParseName() (ItemName, error) {
 }
 
 // ParseFullName parses x.Name as ItemName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Item) ParseFullName() (ItemName, error) {
 	parsed, err := ParseFullItemName(x.GetName())
 	if err != nil {
@@ -391,7 +391,7 @@ func (x *Item) ParseFullName() (ItemName, error) {
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with CollectionName{CollectionID: id}.
 //
-// A failure is a *aip.FieldError naming collection_id.
+// A failure is a *aip_go.FieldError naming collection_id.
 func (x *CreateCollectionRequest) ParseCollectionID() (uuid.UUID, error) {
 	id := x.GetCollectionId()
 	if id == "" {
@@ -419,7 +419,7 @@ func (x *CreateCollectionRequest) ParseCollectionID() (uuid.UUID, error) {
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with OrganizationName{OrganizationID: id}.
 //
-// A failure is a *aip.FieldError naming organization_id.
+// A failure is a *aip_go.FieldError naming organization_id.
 func (x *CreateOrganizationRequest) ParseOrganizationID() (uuid.UUID, error) {
 	id := x.GetOrganizationId()
 	if id == "" {
@@ -447,7 +447,7 @@ func (x *CreateOrganizationRequest) ParseOrganizationID() (uuid.UUID, error) {
 // for the caller to fill, e.g. with uuid.NewV7. The field holds a bare ID,
 // not a resource name: build the name with ItemName{ItemID: id}.
 //
-// A failure is a *aip.FieldError naming item_id.
+// A failure is a *aip_go.FieldError naming item_id.
 func (x *CreateItemRequest) ParseItemID() (uuid.UUID, error) {
 	id := x.GetItemId()
 	if id == "" {

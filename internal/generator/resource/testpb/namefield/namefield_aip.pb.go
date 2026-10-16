@@ -91,7 +91,7 @@ func (n PersonName) ContainsWildcard() bool {
 }
 
 // ParsePersonName parses x.PersonName as PersonName. A failure is a
-// *aip.FieldError naming person_name.
+// *aip_go.FieldError naming person_name.
 func (x *Person) ParsePersonName() (PersonName, error) {
 	parsed, err := ParsePersonName(x.GetPersonName())
 	if err != nil {
@@ -101,7 +101,7 @@ func (x *Person) ParsePersonName() (PersonName, error) {
 }
 
 // ParseFullPersonName parses x.PersonName as PersonName. A failure is a
-// *aip.FieldError naming person_name.
+// *aip_go.FieldError naming person_name.
 func (x *Person) ParseFullPersonName() (PersonName, error) {
 	parsed, err := ParseFullPersonName(x.GetPersonName())
 	if err != nil {

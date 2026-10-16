@@ -284,7 +284,7 @@ func (n ProjectName) ProjectThingName(
 }
 
 // ParseName parses x.Name as ThingName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Thing) ParseName() (ThingName, error) {
 	parsed, err := ParseThingName(x.GetName())
 	if err != nil {
@@ -294,7 +294,7 @@ func (x *Thing) ParseName() (ThingName, error) {
 }
 
 // ParseFullName parses x.Name as ThingName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Thing) ParseFullName() (ThingName, error) {
 	parsed, err := ParseFullThingName(x.GetName())
 	if err != nil {
@@ -304,7 +304,7 @@ func (x *Thing) ParseFullName() (ThingName, error) {
 }
 
 // ParseName parses x.Name as ProjectName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Project) ParseName() (ProjectName, error) {
 	parsed, err := ParseProjectName(x.GetName())
 	if err != nil {
@@ -314,7 +314,7 @@ func (x *Project) ParseName() (ProjectName, error) {
 }
 
 // ParseFullName parses x.Name as ProjectName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *Project) ParseFullName() (ProjectName, error) {
 	parsed, err := ParseFullProjectName(x.GetName())
 	if err != nil {
@@ -324,7 +324,7 @@ func (x *Project) ParseFullName() (ProjectName, error) {
 }
 
 // ParseName parses x.Name as ProjectThingName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *ProjectThing) ParseName() (ProjectThingName, error) {
 	parsed, err := ParseProjectThingName(x.GetName())
 	if err != nil {
@@ -334,7 +334,7 @@ func (x *ProjectThing) ParseName() (ProjectThingName, error) {
 }
 
 // ParseFullName parses x.Name as ProjectThingName. A failure is a
-// *aip.FieldError naming name.
+// *aip_go.FieldError naming name.
 func (x *ProjectThing) ParseFullName() (ProjectThingName, error) {
 	parsed, err := ParseFullProjectThingName(x.GetName())
 	if err != nil {
