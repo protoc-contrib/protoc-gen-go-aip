@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.6.0...v0.6.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* validate resource patterns with aip-go's compiler ([#80](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/80)) ([0e4ead4](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/0e4ead4603fd6b681c01030e2ba0ccb7895c6920))
+
 ## [0.6.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.5.0...v0.6.0) (2026-10-15)
 
 
