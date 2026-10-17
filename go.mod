@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	cel.dev/cel-go v0.32.0
 	github.com/iancoleman/strcase v0.3.0
-	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
 	github.com/protoc-contrib/aip-go v0.0.0-20261015175026-683ccacb755e
 	google.golang.org/genproto/googleapis/api v0.0.0-20260831171406-18b4a7587f8a
