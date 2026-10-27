@@ -88,3 +88,8 @@ func (n ExternalName) Pattern() string {
 func (n ExternalName) ContainsWildcard() bool {
 	return n.ExternalID == "-"
 }
+
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n ExternalName) IsWildcard() bool {
+	return n.ExternalID == "-"
+}

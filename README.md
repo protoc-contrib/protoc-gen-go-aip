@@ -84,7 +84,9 @@ A `.proto` with neither gets no companion.
   rejected, since it would format back as a different name), or the AIP-159
   wildcard `-`. The struct field stays a `string`, because a `uuid.UUID` cannot
   hold the wildcard, so a name keeps what it was given and `ContainsWildcard()`
-  is the generic `n.X == "-"`. The parent UUID consistency check is automatic
+  is the generic `n.X == "-"`; `IsWildcard()` is true when every variable segment
+  is, so a parent name tells "some ancestors are `-`" (`ContainsWildcard()` and not
+  `IsWildcard()`, which a handler may refuse as a mix) from "all of them are". The parent UUID consistency check is automatic
   across the pattern tree.
   - **`Parse<Variable>ID()`** on the name returns the resource's *own* id as the
     standard library's `uuid.UUID` (so generated code needs Go 1.27). It fails

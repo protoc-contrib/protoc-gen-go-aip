@@ -90,6 +90,11 @@ func (n ThingName) ContainsWildcard() bool {
 	return n.ThingID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n ThingName) IsWildcard() bool {
+	return n.ThingID == "-"
+}
+
 // ProjectName is the parsed form of a "example.com/Project" resource name (pattern "projects/{project}").
 type ProjectName struct {
 	ProjectID string
@@ -168,6 +173,11 @@ func (n ProjectName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n ProjectName) ContainsWildcard() bool {
+	return n.ProjectID == "-"
+}
+
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n ProjectName) IsWildcard() bool {
 	return n.ProjectID == "-"
 }
 
@@ -264,6 +274,11 @@ func (n ProjectThingName) Pattern() string {
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n ProjectThingName) ContainsWildcard() bool {
 	return n.ProjectID == "-" || n.ThingID == "-"
+}
+
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n ProjectThingName) IsWildcard() bool {
+	return n.ProjectID == "-" && n.ThingID == "-"
 }
 
 // Parent returns the parent ProjectName derived from this resource's fields.

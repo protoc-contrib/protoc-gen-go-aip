@@ -91,6 +91,11 @@ func (n PublisherName) ContainsWildcard() bool {
 	return n.PublisherID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n PublisherName) IsWildcard() bool {
+	return n.PublisherID == "-"
+}
+
 // AuthorName is the parsed form of a "example.com/Author" resource name (pattern "authors/{author}").
 type AuthorName struct {
 	AuthorID string
@@ -169,6 +174,11 @@ func (n AuthorName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n AuthorName) ContainsWildcard() bool {
+	return n.AuthorID == "-"
+}
+
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n AuthorName) IsWildcard() bool {
 	return n.AuthorID == "-"
 }
 
@@ -257,6 +267,11 @@ func (n PublisherBookName) Pattern() string {
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n PublisherBookName) ContainsWildcard() bool {
 	return n.PublisherID == "-" || n.BookID == "-"
+}
+
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n PublisherBookName) IsWildcard() bool {
+	return n.PublisherID == "-" && n.BookID == "-"
 }
 
 // Parent returns the parent PublisherName derived from this resource's fields.
@@ -355,6 +370,11 @@ func (n AuthorBookName) ContainsWildcard() bool {
 	return n.AuthorID == "-" || n.BookID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n AuthorBookName) IsWildcard() bool {
+	return n.AuthorID == "-" && n.BookID == "-"
+}
+
 // Parent returns the parent AuthorName derived from this resource's fields.
 func (n AuthorBookName) Parent() AuthorName {
 	return AuthorName{
@@ -373,6 +393,7 @@ type BookName interface {
 	Type() string
 	Pattern() string
 	ContainsWildcard() bool
+	IsWildcard() bool
 	mustEmbedBookName()
 }
 

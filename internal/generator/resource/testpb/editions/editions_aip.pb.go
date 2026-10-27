@@ -97,6 +97,11 @@ func (n GadgetName) ContainsWildcard() bool {
 	return n.GadgetID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n GadgetName) IsWildcard() bool {
+	return n.GadgetID == "-"
+}
+
 // ParseGadgetID returns the gadget id as a UUID. It fails for the wildcard "-", which is no id.
 func (n GadgetName) ParseGadgetID() (uuid.UUID, error) {
 	if n.GadgetID == "-" {

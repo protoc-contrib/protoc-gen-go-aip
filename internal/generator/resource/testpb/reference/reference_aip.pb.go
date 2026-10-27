@@ -92,6 +92,11 @@ func (n FooName) ContainsWildcard() bool {
 	return n.FooID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n FooName) IsWildcard() bool {
+	return n.FooID == "-"
+}
+
 // BarName is the parsed form of a "example.com/Bar" resource name (pattern "bars/{bar}").
 type BarName struct {
 	BarID string
@@ -170,6 +175,11 @@ func (n BarName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n BarName) ContainsWildcard() bool {
+	return n.BarID == "-"
+}
+
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n BarName) IsWildcard() bool {
 	return n.BarID == "-"
 }
 
