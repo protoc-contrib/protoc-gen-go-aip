@@ -12,7 +12,7 @@ import (
 
 // GadgetName is the parsed form of a "example.com/Gadget" resource name (pattern "gadgets/{gadget}").
 type GadgetName struct {
-	GadgetID uuid.UUID
+	GadgetID string
 }
 
 // ParseGadgetName parses s as GadgetName (pattern "gadgets/{gadget}").
@@ -28,14 +28,16 @@ func ParseGadgetName(s string) (GadgetName, error) {
 	if parts[1] == "" {
 		return GadgetName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return GadgetName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] != "-" {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return GadgetName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return GadgetName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
 	}
-	if v1.String() != parts[1] {
-		return GadgetName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.GadgetID = v1
+	out.GadgetID = parts[1]
 	return out, nil
 }
 
@@ -49,7 +51,7 @@ func ParseFullGadgetName(s string) (GadgetName, error) {
 
 // String returns the relative resource name "gadgets/{gadget}" and implements fmt.Stringer.
 func (n GadgetName) String() string {
-	return "gadgets/" + n.GadgetID.String()
+	return "gadgets/" + n.GadgetID
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//example.com/".
@@ -72,10 +74,10 @@ func (n *GadgetName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is the nil UUID.
+// Validate returns an error if any variable segment is not a canonical non-nil UUID.
 func (n GadgetName) Validate() error {
-	if n.GadgetID == uuid.Nil() {
-		return fmt.Errorf("gadget: empty")
+	if v, err := uuid.Parse(n.GadgetID); err != nil || v.String() != n.GadgetID || v == uuid.Nil() {
+		return fmt.Errorf("gadget: not a canonical non-nil UUID")
 	}
 	return nil
 }
@@ -92,18 +94,33 @@ func (n GadgetName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n GadgetName) ContainsWildcard() bool {
-	return false
+	return n.GadgetID == "-"
+}
+
+// ParseGadgetID returns the gadget id as a UUID. It fails for the wildcard "-", which is no id.
+func (n GadgetName) ParseGadgetID() (uuid.UUID, error) {
+	if n.GadgetID == "-" {
+		return uuid.Nil(), fmt.Errorf("gadget: the wildcard is not an id")
+	}
+	id, err := uuid.Parse(n.GadgetID)
+	if err != nil {
+		return uuid.Nil(), fmt.Errorf("gadget: %w", err)
+	}
+	return id, nil
 }
 
 // FormatGadgetName returns the relative resource name for a "example.com/Gadget" with the given id.
 func FormatGadgetName(id uuid.UUID) string {
-	return GadgetName{GadgetID: id}.String()
+	return GadgetName{GadgetID: id.String()}.String()
 }
 
-// ParseGadgetID parses s as GadgetName and returns its GadgetID field.
+// ParseGadgetID parses s as GadgetName and returns its GadgetID as a UUID.
 func ParseGadgetID(s string) (uuid.UUID, error) {
-	parsed, err := ParseGadgetName(s)
-	return parsed.GadgetID, err
+	name, err := ParseGadgetName(s)
+	if err != nil {
+		return uuid.Nil(), err
+	}
+	return name.ParseGadgetID()
 }
 
 // ParseName parses x.Name as GadgetName. A failure is a

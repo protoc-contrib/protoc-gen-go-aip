@@ -411,7 +411,7 @@ func emitResource(g *protogen.GeneratedFile, r *resource, reg *registry) error {
 			return err
 		}
 		emitPatternStruct(g, r, r.ParsedType.GoName, r.ParseFunc.GoName, r.FullParseFunc.GoName, "", parent, r.Patterns[0])
-		emitSingleIDHelpers(g, r, r.Patterns[0])
+		emitIDHelpers(g, r, r.Patterns[0], parent)
 		return nil
 	}
 
@@ -435,15 +435,48 @@ func emitResource(g *protogen.GeneratedFile, r *resource, reg *registry) error {
 	return nil
 }
 
-// emitSingleIDHelpers emits Format<TypeName>Name and Parse<TypeName>ID for
-// single-pattern resources whose pattern has exactly one variable segment
-// with a typed (non-string) format. The helpers are plain top-level functions
-// so code generators like goverter can consume them via their "extend"
-// directive — something a method expression or struct-literal conversion
-// can't express. The string case is intentionally skipped: the signatures
-// would collide across resources and the underlying conversion is a no-op
-// anyway, so struct-literal use remains preferable there.
-func emitSingleIDHelpers(g *protogen.GeneratedFile, r *resource, p pattern) {
+// emitOwnIDAccessor emits Parse<Variable>ID() for the resource's own segment —
+// the last variable one — when it is UUID-typed: the id as a uuid.UUID. The
+// struct holds it as a string, so that it can be the AIP-159 wildcard "-", which
+// is no id and fails here, as does a value that is not a UUID (a name built by
+// hand: Parse validates the ones it makes). A parent's id is the parent's own
+// segment: n.Parent().Parse<Parent>ID().
+func emitOwnIDAccessor(g *protogen.GeneratedFile, typeName string, p pattern) {
+	seg, ok := ownSegment(p)
+	if !ok || seg.Format != formatUUID4 {
+		return
+	}
+	field := "n." + seg.FieldName()
+	method := "Parse" + seg.FieldName()
+	g.P("// ", method, " returns the ", seg.Name, " id as a UUID. It fails for the wildcard ", strconv.Quote("-"), ", which is no id.")
+	g.P("func (n ", typeName, ") ", method, "() (", g.QualifiedGoIdent(uuidPackage.Ident("UUID")), ", error) {")
+	g.P("if ", field, " == \"-\" {")
+	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), "(\"", seg.Name, ": the wildcard is not an id\")")
+	g.P("}")
+	g.P("id, err := ", uuidPackage.Ident("Parse"), "(", field, ")")
+	g.P("if err != nil {")
+	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), "(\"", seg.Name, ": %w\", err)")
+	g.P("}")
+	g.P("return id, nil")
+	g.P("}")
+	g.P()
+}
+
+// emitIDHelpers emits the plain top-level functions that code generators like
+// goverter consume through their "extend" directive — something a method
+// expression or a struct literal can't express — for single-pattern resources:
+//
+//   - Format<TypeName>Name(id uuid.UUID) string, when the pattern has exactly one
+//     variable segment and it is UUID-typed;
+//   - Parse<TypeName>ID(s string) (uuid.UUID, error), when the own segment is
+//     UUID-typed: parse the name, then its id;
+//   - Parse<TypeName><Parent>ID(s string) (uuid.UUID, error), when the parent
+//     resource is in the same package and its own segment is UUID-typed: parse
+//     the name, then its parent's id.
+//
+// A string segment gets none of them: the signatures would collide across
+// resources and the conversion is a no-op, so struct-literal use remains better.
+func emitIDHelpers(g *protogen.GeneratedFile, r *resource, p pattern, parent *parentBinding) {
 	var varCount int
 	var varSeg segment
 	for _, s := range p {
@@ -452,27 +485,50 @@ func emitSingleIDHelpers(g *protogen.GeneratedFile, r *resource, p pattern) {
 			varSeg = s
 		}
 	}
-	if varCount != 1 || varSeg.Format == formatString {
+	own, ok := ownSegment(p)
+	if !ok || own.Format != formatUUID4 {
 		return
 	}
 
 	typeName := r.ParsedType.GoName
-	idType := segmentGoType(g, varSeg)
-	fieldName := varSeg.FieldName()
-	formatFn := "Format" + typeName
-	parseFn := "Parse" + r.Type.TypeName + "ID"
+	uuidType := g.QualifiedGoIdent(uuidPackage.Ident("UUID"))
 	fullType := r.Type.ServiceName + "/" + r.Type.TypeName
 
-	g.P("// ", formatFn, " returns the relative resource name for a ", strconv.Quote(fullType), " with the given id.")
-	g.P("func ", formatFn, "(id ", idType, ") string {")
-	g.P("return ", typeName, "{", fieldName, ": id}.String()")
+	if varCount == 1 && varSeg.Format == formatUUID4 {
+		formatFn := "Format" + typeName
+		g.P("// ", formatFn, " returns the relative resource name for a ", strconv.Quote(fullType), " with the given id.")
+		g.P("func ", formatFn, "(id ", uuidType, ") string {")
+		g.P("return ", typeName, "{", varSeg.FieldName(), ": id.String()}.String()")
+		g.P("}")
+		g.P()
+	}
+
+	parseFn := "Parse" + r.Type.TypeName + "ID"
+	g.P("// ", parseFn, " parses s as ", typeName, " and returns its ", own.FieldName(), " as a UUID.")
+	g.P("func ", parseFn, "(s string) (", uuidType, ", error) {")
+	g.P("name, err := ", r.ParseFunc.GoName, "(s)")
+	g.P("if err != nil {")
+	g.P("return ", uuidPackage.Ident("Nil"), "(), err")
+	g.P("}")
+	g.P("return name.Parse", own.FieldName(), "()")
 	g.P("}")
 	g.P()
 
-	g.P("// ", parseFn, " parses s as ", typeName, " and returns its ", fieldName, " field.")
-	g.P("func ", parseFn, "(s string) (", idType, ", error) {")
-	g.P("parsed, err := ", r.ParseFunc.GoName, "(s)")
-	g.P("return parsed.", fieldName, ", err")
+	if parent == nil || parent.ReturnType != parent.Variant || parent.Variant.GoImportPath != r.ParsedType.GoImportPath {
+		return
+	}
+	parentOwn, ok := ownSegment(parent.Pattern)
+	if !ok || parentOwn.Format != formatUUID4 {
+		return
+	}
+	parentFn := "Parse" + r.Type.TypeName + parentOwn.FieldName()
+	g.P("// ", parentFn, " parses s as ", typeName, " and returns its parent's ", parentOwn.FieldName(), " as a UUID.")
+	g.P("func ", parentFn, "(s string) (", uuidType, ", error) {")
+	g.P("name, err := ", r.ParseFunc.GoName, "(s)")
+	g.P("if err != nil {")
+	g.P("return ", uuidPackage.Ident("Nil"), "(), err")
+	g.P("}")
+	g.P("return name.Parent().Parse", parentOwn.FieldName(), "()")
 	g.P("}")
 	g.P()
 }
@@ -614,6 +670,9 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 			g.P("return ", typeName, "{}, ", fmtPackage.Ident("Errorf"), "(\"parse %q: empty value for segment ", i, "\", s)")
 			g.P("}")
 			if s.Format == formatUUID4 {
+				// A UUID segment is a canonical UUID, or the AIP-159 wildcard "-",
+				// which is why the field is a string: a uuid.UUID cannot hold it.
+				g.P("if parts[", i, "] != \"-\" {")
 				g.P("v", i, ", err := ", uuidPackage.Ident("Parse"), "(parts[", i, "])")
 				g.P("if err != nil {")
 				g.P("return ", typeName, "{}, ", fmtPackage.Ident("Errorf"), "(\"parse %q: segment ", i, ": %w\", s, err)")
@@ -624,8 +683,7 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 				g.P("if v", i, ".String() != parts[", i, "] {")
 				g.P("return ", typeName, "{}, ", fmtPackage.Ident("Errorf"), "(\"parse %q: segment ", i, ": not a canonical lowercase UUID\", s)")
 				g.P("}")
-				g.P("out.", s.FieldName(), " = v", i)
-				continue
+				g.P("}")
 			}
 			g.P("out.", s.FieldName(), " = parts[", i, "]")
 			continue
@@ -682,6 +740,7 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 	emitType(g, typeName, r.Type.ServiceName+"/"+r.Type.TypeName)
 	emitPattern(g, typeName, patStr)
 	emitContainsWildcard(g, typeName, p)
+	emitOwnIDAccessor(g, typeName, p)
 
 	if parent != nil {
 		emitParent(g, typeName, parent)
@@ -707,8 +766,9 @@ func emitValidate(g *protogen.GeneratedFile, typeName string, p pattern) {
 		}
 		field := "n." + s.FieldName()
 		if s.Format == formatUUID4 {
-			g.P("if ", field, " == ", uuidPackage.Ident("Nil"), "() {")
-			g.P("return ", fmtPackage.Ident("Errorf"), "(\"", s.Name, ": empty\")")
+			// the wildcard is no id: it fails here, as the nil UUID does
+			g.P("if v, err := ", uuidPackage.Ident("Parse"), "(", field, "); err != nil || v.String() != ", field, " || v == ", uuidPackage.Ident("Nil"), "() {")
+			g.P("return ", fmtPackage.Ident("Errorf"), "(\"", s.Name, ": not a canonical non-nil UUID\")")
 			g.P("}")
 			continue
 		}
@@ -742,7 +802,7 @@ func validateCondition(p pattern) string {
 	case strs && uuids:
 		return "a string segment is empty or contains '/', or a UUID segment is the nil UUID"
 	case uuids:
-		return "any variable segment is the nil UUID"
+		return "any variable segment is not a canonical non-nil UUID"
 	default:
 		return "any variable segment is empty or contains '/'"
 	}
@@ -772,12 +832,11 @@ func emitPattern(g *protogen.GeneratedFile, typeName, patStr string) {
 
 // emitContainsWildcard emits ContainsWildcard() returning true if any
 // variable segment equals "-" — AIP-159's wildcard sentinel for
-// cross-collection list operations. UUID-typed fields can't carry the
-// wildcard so they are excluded.
+// cross-collection reads. A UUID segment is a string that may hold it.
 func emitContainsWildcard(g *protogen.GeneratedFile, typeName string, p pattern) {
 	var fields []string
 	for _, s := range p {
-		if !s.Var || s.Format == formatUUID4 {
+		if !s.Var {
 			continue
 		}
 		fields = append(fields, "n."+s.FieldName())
@@ -816,7 +875,7 @@ func emitParentConstructor(g *protogen.GeneratedFile, childImportPath protogen.G
 	g.P("func (n ", parent.Variant.GoName, ") ", childTypeName, "(")
 	for _, s := range extraSegs {
 		if s.Var {
-			g.P(lowerCamel(s.FieldName()), " ", segmentGoType(g, s), ",")
+			g.P(lowerCamel(s.FieldName()), " ", segmentParamType(g, s), ",")
 		}
 	}
 	g.P(") ", childTypeName, " {")
@@ -828,7 +887,7 @@ func emitParentConstructor(g *protogen.GeneratedFile, childImportPath protogen.G
 	}
 	for _, s := range extraSegs {
 		if s.Var {
-			g.P(s.FieldName(), ": ", lowerCamel(s.FieldName()), ",")
+			g.P(s.FieldName(), ": ", segmentFromParam(s, lowerCamel(s.FieldName())), ",")
 		}
 	}
 	g.P("}")
@@ -876,14 +935,28 @@ func parentPattern(p pattern) (pattern, bool) {
 }
 
 // segmentGoType returns the value to feed to g.P as the Go type of a variable
-// segment's struct field. For the default string format it returns the literal
-// "string"; for formatUUID4 it returns a qualified ident into the standard uuid package
-// so the import is registered.
+// segment's struct field: always "string", so a UUID segment can hold the
+// AIP-159 wildcard "-"; the typed id comes from the Parse<Variable>ID accessor.
 func segmentGoType(g *protogen.GeneratedFile, s segment) any {
+	return "string"
+}
+
+// segmentParamType returns the type a constructor takes for a variable segment:
+// a uuid.UUID for a UUID segment, which the struct then stores as a string.
+func segmentParamType(g *protogen.GeneratedFile, s segment) any {
 	if s.Format == formatUUID4 {
 		return g.QualifiedGoIdent(uuidPackage.Ident("UUID"))
 	}
 	return "string"
+}
+
+// segmentFromParam is the expression that stores a constructor's parameter in
+// the struct field of a variable segment.
+func segmentFromParam(s segment, param string) string {
+	if s.Format == formatUUID4 {
+		return param + ".String()"
+	}
+	return param
 }
 
 // nameExpression builds the string-concatenation expression used in String().
@@ -906,9 +979,6 @@ func nameExpression(p pattern) string {
 		if s.Var {
 			flushLiteral()
 			expr := "n." + s.FieldName()
-			if s.Format == formatUUID4 {
-				expr += ".String()"
-			}
 			parts = append(parts, expr)
 			continue
 		}

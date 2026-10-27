@@ -12,7 +12,7 @@ import (
 
 // CollectionName is the parsed form of a "example.com/Collection" resource name (pattern "collections/{collection}").
 type CollectionName struct {
-	CollectionID uuid.UUID
+	CollectionID string
 }
 
 // ParseCollectionName parses s as CollectionName (pattern "collections/{collection}").
@@ -28,14 +28,16 @@ func ParseCollectionName(s string) (CollectionName, error) {
 	if parts[1] == "" {
 		return CollectionName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return CollectionName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] != "-" {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return CollectionName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return CollectionName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
 	}
-	if v1.String() != parts[1] {
-		return CollectionName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.CollectionID = v1
+	out.CollectionID = parts[1]
 	return out, nil
 }
 
@@ -49,7 +51,7 @@ func ParseFullCollectionName(s string) (CollectionName, error) {
 
 // String returns the relative resource name "collections/{collection}" and implements fmt.Stringer.
 func (n CollectionName) String() string {
-	return "collections/" + n.CollectionID.String()
+	return "collections/" + n.CollectionID
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//example.com/".
@@ -72,10 +74,10 @@ func (n *CollectionName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is the nil UUID.
+// Validate returns an error if any variable segment is not a canonical non-nil UUID.
 func (n CollectionName) Validate() error {
-	if n.CollectionID == uuid.Nil() {
-		return fmt.Errorf("collection: empty")
+	if v, err := uuid.Parse(n.CollectionID); err != nil || v.String() != n.CollectionID || v == uuid.Nil() {
+		return fmt.Errorf("collection: not a canonical non-nil UUID")
 	}
 	return nil
 }
@@ -92,23 +94,38 @@ func (n CollectionName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n CollectionName) ContainsWildcard() bool {
-	return false
+	return n.CollectionID == "-"
+}
+
+// ParseCollectionID returns the collection id as a UUID. It fails for the wildcard "-", which is no id.
+func (n CollectionName) ParseCollectionID() (uuid.UUID, error) {
+	if n.CollectionID == "-" {
+		return uuid.Nil(), fmt.Errorf("collection: the wildcard is not an id")
+	}
+	id, err := uuid.Parse(n.CollectionID)
+	if err != nil {
+		return uuid.Nil(), fmt.Errorf("collection: %w", err)
+	}
+	return id, nil
 }
 
 // FormatCollectionName returns the relative resource name for a "example.com/Collection" with the given id.
 func FormatCollectionName(id uuid.UUID) string {
-	return CollectionName{CollectionID: id}.String()
+	return CollectionName{CollectionID: id.String()}.String()
 }
 
-// ParseCollectionID parses s as CollectionName and returns its CollectionID field.
+// ParseCollectionID parses s as CollectionName and returns its CollectionID as a UUID.
 func ParseCollectionID(s string) (uuid.UUID, error) {
-	parsed, err := ParseCollectionName(s)
-	return parsed.CollectionID, err
+	name, err := ParseCollectionName(s)
+	if err != nil {
+		return uuid.Nil(), err
+	}
+	return name.ParseCollectionID()
 }
 
 // OrganizationName is the parsed form of a "example.com/Organization" resource name (pattern "organizations/{organization}").
 type OrganizationName struct {
-	OrganizationID uuid.UUID
+	OrganizationID string
 }
 
 // ParseOrganizationName parses s as OrganizationName (pattern "organizations/{organization}").
@@ -124,14 +141,16 @@ func ParseOrganizationName(s string) (OrganizationName, error) {
 	if parts[1] == "" {
 		return OrganizationName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return OrganizationName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] != "-" {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return OrganizationName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return OrganizationName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
 	}
-	if v1.String() != parts[1] {
-		return OrganizationName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.OrganizationID = v1
+	out.OrganizationID = parts[1]
 	return out, nil
 }
 
@@ -145,7 +164,7 @@ func ParseFullOrganizationName(s string) (OrganizationName, error) {
 
 // String returns the relative resource name "organizations/{organization}" and implements fmt.Stringer.
 func (n OrganizationName) String() string {
-	return "organizations/" + n.OrganizationID.String()
+	return "organizations/" + n.OrganizationID
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//example.com/".
@@ -168,10 +187,10 @@ func (n *OrganizationName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is the nil UUID.
+// Validate returns an error if any variable segment is not a canonical non-nil UUID.
 func (n OrganizationName) Validate() error {
-	if n.OrganizationID == uuid.Nil() {
-		return fmt.Errorf("organization: empty")
+	if v, err := uuid.Parse(n.OrganizationID); err != nil || v.String() != n.OrganizationID || v == uuid.Nil() {
+		return fmt.Errorf("organization: not a canonical non-nil UUID")
 	}
 	return nil
 }
@@ -188,24 +207,39 @@ func (n OrganizationName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n OrganizationName) ContainsWildcard() bool {
-	return false
+	return n.OrganizationID == "-"
+}
+
+// ParseOrganizationID returns the organization id as a UUID. It fails for the wildcard "-", which is no id.
+func (n OrganizationName) ParseOrganizationID() (uuid.UUID, error) {
+	if n.OrganizationID == "-" {
+		return uuid.Nil(), fmt.Errorf("organization: the wildcard is not an id")
+	}
+	id, err := uuid.Parse(n.OrganizationID)
+	if err != nil {
+		return uuid.Nil(), fmt.Errorf("organization: %w", err)
+	}
+	return id, nil
 }
 
 // FormatOrganizationName returns the relative resource name for a "example.com/Organization" with the given id.
 func FormatOrganizationName(id uuid.UUID) string {
-	return OrganizationName{OrganizationID: id}.String()
+	return OrganizationName{OrganizationID: id.String()}.String()
 }
 
-// ParseOrganizationID parses s as OrganizationName and returns its OrganizationID field.
+// ParseOrganizationID parses s as OrganizationName and returns its OrganizationID as a UUID.
 func ParseOrganizationID(s string) (uuid.UUID, error) {
-	parsed, err := ParseOrganizationName(s)
-	return parsed.OrganizationID, err
+	name, err := ParseOrganizationName(s)
+	if err != nil {
+		return uuid.Nil(), err
+	}
+	return name.ParseOrganizationID()
 }
 
 // ItemName is the parsed form of a "example.com/Item" resource name (pattern "organizations/{organization}/items/{item}").
 type ItemName struct {
-	OrganizationID uuid.UUID
-	ItemID         uuid.UUID
+	OrganizationID string
+	ItemID         string
 }
 
 // ParseItemName parses s as ItemName (pattern "organizations/{organization}/items/{item}").
@@ -221,28 +255,32 @@ func ParseItemName(s string) (ItemName, error) {
 	if parts[1] == "" {
 		return ItemName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return ItemName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] != "-" {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return ItemName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return ItemName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
 	}
-	if v1.String() != parts[1] {
-		return ItemName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.OrganizationID = v1
+	out.OrganizationID = parts[1]
 	if parts[2] != "items" {
 		return ItemName{}, fmt.Errorf("parse %q: bad segment 2, want: %q, got: %q", s, "items", parts[2])
 	}
 	if parts[3] == "" {
 		return ItemName{}, fmt.Errorf("parse %q: empty value for segment 3", s)
 	}
-	v3, err := uuid.Parse(parts[3])
-	if err != nil {
-		return ItemName{}, fmt.Errorf("parse %q: segment 3: %w", s, err)
+	if parts[3] != "-" {
+		v3, err := uuid.Parse(parts[3])
+		if err != nil {
+			return ItemName{}, fmt.Errorf("parse %q: segment 3: %w", s, err)
+		}
+		if v3.String() != parts[3] {
+			return ItemName{}, fmt.Errorf("parse %q: segment 3: not a canonical lowercase UUID", s)
+		}
 	}
-	if v3.String() != parts[3] {
-		return ItemName{}, fmt.Errorf("parse %q: segment 3: not a canonical lowercase UUID", s)
-	}
-	out.ItemID = v3
+	out.ItemID = parts[3]
 	return out, nil
 }
 
@@ -256,7 +294,7 @@ func ParseFullItemName(s string) (ItemName, error) {
 
 // String returns the relative resource name "organizations/{organization}/items/{item}" and implements fmt.Stringer.
 func (n ItemName) String() string {
-	return "organizations/" + n.OrganizationID.String() + "/items/" + n.ItemID.String()
+	return "organizations/" + n.OrganizationID + "/items/" + n.ItemID
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//example.com/".
@@ -279,13 +317,13 @@ func (n *ItemName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Validate returns an error if any variable segment is the nil UUID.
+// Validate returns an error if any variable segment is not a canonical non-nil UUID.
 func (n ItemName) Validate() error {
-	if n.OrganizationID == uuid.Nil() {
-		return fmt.Errorf("organization: empty")
+	if v, err := uuid.Parse(n.OrganizationID); err != nil || v.String() != n.OrganizationID || v == uuid.Nil() {
+		return fmt.Errorf("organization: not a canonical non-nil UUID")
 	}
-	if n.ItemID == uuid.Nil() {
-		return fmt.Errorf("item: empty")
+	if v, err := uuid.Parse(n.ItemID); err != nil || v.String() != n.ItemID || v == uuid.Nil() {
+		return fmt.Errorf("item: not a canonical non-nil UUID")
 	}
 	return nil
 }
@@ -302,7 +340,19 @@ func (n ItemName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n ItemName) ContainsWildcard() bool {
-	return false
+	return n.OrganizationID == "-" || n.ItemID == "-"
+}
+
+// ParseItemID returns the item id as a UUID. It fails for the wildcard "-", which is no id.
+func (n ItemName) ParseItemID() (uuid.UUID, error) {
+	if n.ItemID == "-" {
+		return uuid.Nil(), fmt.Errorf("item: the wildcard is not an id")
+	}
+	id, err := uuid.Parse(n.ItemID)
+	if err != nil {
+		return uuid.Nil(), fmt.Errorf("item: %w", err)
+	}
+	return id, nil
 }
 
 // Parent returns the parent OrganizationName derived from this resource's fields.
@@ -318,8 +368,26 @@ func (n OrganizationName) ItemName(
 ) ItemName {
 	return ItemName{
 		OrganizationID: n.OrganizationID,
-		ItemID:         itemID,
+		ItemID:         itemID.String(),
 	}
+}
+
+// ParseItemID parses s as ItemName and returns its ItemID as a UUID.
+func ParseItemID(s string) (uuid.UUID, error) {
+	name, err := ParseItemName(s)
+	if err != nil {
+		return uuid.Nil(), err
+	}
+	return name.ParseItemID()
+}
+
+// ParseItemOrganizationID parses s as ItemName and returns its parent's OrganizationID as a UUID.
+func ParseItemOrganizationID(s string) (uuid.UUID, error) {
+	name, err := ParseItemName(s)
+	if err != nil {
+		return uuid.Nil(), err
+	}
+	return name.Parent().ParseOrganizationID()
 }
 
 // ParseName parses x.Name as CollectionName. A failure is a
