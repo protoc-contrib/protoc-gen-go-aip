@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.7.0...v0.8.0) (2026-10-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* stop generating a method on a parent for each of its children ([#92](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/92))
+
+### Features
+
+* generate IsWildcard, true when every variable segment is the wildcard ([#93](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/93)) ([d9faf69](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/d9faf6905b9080536c0ebd14b84d2b299c2bfc3e))
+* stop generating a method on a parent for each of its children ([#92](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/92)) ([26b9b65](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/26b9b65c742f5cdc6f9d959bd15f720bbbae23d3))
+
 ## [0.7.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.6.2...v0.7.0) (2026-10-27)
 
 
