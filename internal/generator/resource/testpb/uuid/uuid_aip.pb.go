@@ -362,16 +362,6 @@ func (n ItemName) Parent() OrganizationName {
 	}
 }
 
-// ItemName builds a ItemName under this OrganizationName.
-func (n OrganizationName) ItemName(
-	itemID uuid.UUID,
-) ItemName {
-	return ItemName{
-		OrganizationID: n.OrganizationID,
-		ItemID:         itemID.String(),
-	}
-}
-
 // ParseItemID parses s as ItemName and returns its ItemID as a UUID.
 func ParseItemID(s string) (uuid.UUID, error) {
 	name, err := ParseItemName(s)

@@ -385,21 +385,6 @@ func TestContainsWildcard(t *testing.T) {
 	}
 }
 
-// TestParentConstructor exercises the constructor method emitted on the
-// parent struct: parent.ChildTypeName(extraArgs...) builds the child by
-// inheriting parent fields and accepting only the child-only segments.
-func TestParentConstructor(t *testing.T) {
-	parent := simple.ProjectName{ProjectID: "p"}
-	got := parent.ProjectThingName("t")
-	want := simple.ProjectThingName{ProjectID: "p", ThingID: "t"}
-	if got != want {
-		t.Fatalf("got %+v, want %+v", got, want)
-	}
-	if got.String() != "projects/p/things/t" {
-		t.Errorf("String: got %q", got.String())
-	}
-}
-
 func checkErr(t *testing.T, got error, want string) {
 	t.Helper()
 	var gotMsg string

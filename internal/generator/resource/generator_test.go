@@ -123,18 +123,16 @@ var _ = Describe("resource.Generate", func() {
 		Expect(out).To(ContainSubstring("ProjectID: n.ProjectID,"))
 		// Top-level resources have no parent → no Parent method.
 		Expect(out).NotTo(ContainSubstring("func (n ThingName) Parent()"))
-		// The parent is in the same package, so it gains the child builder.
-		Expect(out).To(ContainSubstring("func (n ProjectName) ProjectThingName("))
+		// A parent knows nothing of its children: it gains no method for them.
+		Expect(out).NotTo(ContainSubstring("func (n ProjectName) ProjectThingName("))
 	})
 
-	It("skips the parent builder when the parent lives in another Go package", func() {
+	It("navigates to a parent in another Go package, which gains nothing", func() {
 		resp, err := runGenerator(nil, crosspb.File_crosspackage_crosspackage_proto)
 		Expect(err).NotTo(HaveOccurred())
 		out := fileByName(resp, "crosspackage/crosspackage_aip.pb.go")
 		Expect(out).To(ContainSubstring("func (n GadgetName) Parent() simple.ProjectName {"))
-		// A method on simple.ProjectName can't be declared from this package.
 		Expect(out).NotTo(ContainSubstring("func (n ProjectName)"))
-		Expect(out).NotTo(ContainSubstring(") GadgetName("))
 	})
 
 	It("emits one struct per pattern plus a sealed interface for multi-pattern resources", func() {
@@ -322,7 +320,7 @@ var _ = Describe("resource.Generate UUID segments", func() {
 		Expect(out).To(ContainSubstring("func (n CollectionName) ParseCollectionID() (uuid.UUID, error) {"))
 	})
 
-	It("flows parent ids through Parent(), and builds a child from a typed id", func() {
+	It("flows parent ids through Parent(), and gives a parent no method for its children", func() {
 		resp, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
 		Expect(err).NotTo(HaveOccurred())
 		out := fileByName(resp, "uuid/uuid_aip.pb.go")
@@ -330,8 +328,8 @@ var _ = Describe("resource.Generate UUID segments", func() {
 		Expect(out).To(ContainSubstring("OrganizationID: n.OrganizationID,"))
 		Expect(out).To(ContainSubstring("OrganizationID string"))
 		Expect(out).To(ContainSubstring("ItemID         string"))
-		Expect(out).To(ContainSubstring("itemID uuid.UUID,"))
-		Expect(out).To(ContainSubstring("ItemID:         itemID.String(),"))
+		// the dependency runs from the child to its parent, not the other way
+		Expect(out).NotTo(ContainSubstring("func (n OrganizationName) ItemName("))
 	})
 
 	It("reads only a resource's own id through a method, and a parent's through the free helper", func() {

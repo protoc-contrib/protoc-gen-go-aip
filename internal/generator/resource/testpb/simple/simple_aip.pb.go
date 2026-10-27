@@ -273,16 +273,6 @@ func (n ProjectThingName) Parent() ProjectName {
 	}
 }
 
-// ProjectThingName builds a ProjectThingName under this ProjectName.
-func (n ProjectName) ProjectThingName(
-	thingID string,
-) ProjectThingName {
-	return ProjectThingName{
-		ProjectID: n.ProjectID,
-		ThingID:   thingID,
-	}
-}
-
 // ParseName parses x.Name as ThingName. A failure is a
 // *aip_go.FieldError naming name.
 func (x *Thing) ParseName() (ThingName, error) {
