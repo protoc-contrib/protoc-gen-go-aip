@@ -1,13 +1,13 @@
 {
   "assets": {
     "aarch64-darwin": {
-      "hash": "sha256-V06myYR41OAKQq9Y+aHLzIfixv2aTMWjGmYSrd0PA1A=",
-      "url": "https://github.com/protoc-contrib/protoc-gen-go-aip/releases/download/v0.6.2/protoc-gen-go-aip-aarch64-darwin"
+      "hash": "sha256-CUDjLvnKAWsA9PiA5pdNTlymWyugoBPDZofgP9rXneI=",
+      "url": "https://github.com/protoc-contrib/protoc-gen-go-aip/releases/download/v0.7.0/protoc-gen-go-aip-aarch64-darwin"
     },
     "x86_64-linux": {
-      "hash": "sha256-IZPsZpgUVwI6+B7CEfwhtK7xD1Y0/+2TzSMJR40LBNs=",
-      "url": "https://github.com/protoc-contrib/protoc-gen-go-aip/releases/download/v0.6.2/protoc-gen-go-aip-x86_64-linux"
+      "hash": "sha256-SmH9/GTJXMi1En0q4zLBzgdtlJXQOmefz59o4RtzwUE=",
+      "url": "https://github.com/protoc-contrib/protoc-gen-go-aip/releases/download/v0.7.0/protoc-gen-go-aip-x86_64-linux"
     }
   },
-  "version": "0.6.2"
+  "version": "0.7.0"
 }
