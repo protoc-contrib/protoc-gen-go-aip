@@ -105,6 +105,11 @@ func (n GadgetName) ContainsWildcard() bool {
 	return n.ProjectID == "-" || n.GadgetID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n GadgetName) IsWildcard() bool {
+	return n.ProjectID == "-" && n.GadgetID == "-"
+}
+
 // Parent returns the parent ProjectName derived from this resource's fields.
 func (n GadgetName) Parent() simple.ProjectName {
 	return simple.ProjectName{

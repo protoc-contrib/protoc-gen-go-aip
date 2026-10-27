@@ -90,6 +90,11 @@ func (n PersonName) ContainsWildcard() bool {
 	return n.PersonID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n PersonName) IsWildcard() bool {
+	return n.PersonID == "-"
+}
+
 // ParsePersonName parses x.PersonName as PersonName. A failure is a
 // *aip_go.FieldError naming person_name.
 func (x *Person) ParsePersonName() (PersonName, error) {

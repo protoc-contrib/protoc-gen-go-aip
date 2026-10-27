@@ -97,6 +97,11 @@ func (n ShelfName) ContainsWildcard() bool {
 	return n.ShelfID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n ShelfName) IsWildcard() bool {
+	return n.ShelfID == "-"
+}
+
 // ParseShelfID returns the shelf id as a UUID. It fails for the wildcard "-", which is no id.
 func (n ShelfName) ParseShelfID() (uuid.UUID, error) {
 	if n.ShelfID == "-" {
@@ -222,6 +227,11 @@ func (n BookName) Pattern() string {
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n BookName) ContainsWildcard() bool {
 	return n.ShelfID == "-" || n.BookID == "-"
+}
+
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n BookName) IsWildcard() bool {
+	return n.ShelfID == "-" && n.BookID == "-"
 }
 
 // Parent returns the parent ShelfName derived from this resource's fields.

@@ -385,6 +385,31 @@ func TestContainsWildcard(t *testing.T) {
 	}
 }
 
+// TestIsWildcard: IsWildcard is true only when every variable segment is "-",
+// where ContainsWildcard is true when any is, so a name that mixes named and
+// wildcard segments is told apart from one that is wildcard throughout.
+func TestIsWildcard(t *testing.T) {
+	cases := []struct {
+		name string
+		got  simple.ProjectThingName
+		all  bool
+		some bool
+	}{
+		{"none", simple.ProjectThingName{ProjectID: "p", ThingID: "t"}, false, false},
+		{"parent only", simple.ProjectThingName{ProjectID: "-", ThingID: "t"}, false, true},
+		{"leaf only", simple.ProjectThingName{ProjectID: "p", ThingID: "-"}, false, true},
+		{"both", simple.ProjectThingName{ProjectID: "-", ThingID: "-"}, true, true},
+	}
+	for _, tc := range cases {
+		if got := tc.got.IsWildcard(); got != tc.all {
+			t.Errorf("%s: IsWildcard = %v, want %v", tc.name, got, tc.all)
+		}
+		if got := tc.got.ContainsWildcard(); got != tc.some {
+			t.Errorf("%s: ContainsWildcard = %v, want %v", tc.name, got, tc.some)
+		}
+	}
+}
+
 func checkErr(t *testing.T, got error, want string) {
 	t.Helper()
 	var gotMsg string

@@ -740,6 +740,7 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 	emitType(g, typeName, r.Type.ServiceName+"/"+r.Type.TypeName)
 	emitPattern(g, typeName, patStr)
 	emitContainsWildcard(g, typeName, p)
+	emitIsWildcard(g, typeName, p)
 	emitOwnIDAccessor(g, typeName, p)
 
 	if parent != nil {
@@ -859,6 +860,29 @@ func emitContainsWildcard(g *protogen.GeneratedFile, typeName string, p pattern)
 	g.P()
 }
 
+// emitIsWildcard emits IsWildcard() returning true if every variable segment
+// equals "-": the whole name stands for any resource of its type, which is what a
+// parent name reads as when every ancestor is the AIP-159 wildcard. ContainsWildcard
+// is the "some" to its "all": when it is true and IsWildcard is not, the name mixes
+// named and wildcard segments.
+func emitIsWildcard(g *protogen.GeneratedFile, typeName string, p pattern) {
+	var conds []string
+	for _, s := range p {
+		if s.Var {
+			conds = append(conds, "n."+s.FieldName()+" == \"-\"")
+		}
+	}
+	g.P("// IsWildcard reports whether every variable segment is the AIP-159 wildcard ", strconv.Quote("-"), ".")
+	g.P("func (n ", typeName, ") IsWildcard() bool {")
+	if len(conds) == 0 {
+		g.P("return false")
+	} else {
+		g.P("return ", strings.Join(conds, " && "))
+	}
+	g.P("}")
+	g.P()
+}
+
 // emitParent emits a Parent() method that returns the parent resource's
 // generated type. Fields on the parent pattern are mapped by variable name
 // from the receiver — patternsEqual already guaranteed those names match.
@@ -944,6 +968,7 @@ func emitMultiPatternInterface(g *protogen.GeneratedFile, r *resource, embed str
 	g.P("Type() string")
 	g.P("Pattern() string")
 	g.P("ContainsWildcard() bool")
+	g.P("IsWildcard() bool")
 	g.P(embed, "()")
 	g.P("}")
 	g.P()

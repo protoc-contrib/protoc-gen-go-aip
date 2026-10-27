@@ -320,6 +320,15 @@ var _ = Describe("resource.Generate UUID segments", func() {
 		Expect(out).To(ContainSubstring("func (n CollectionName) ParseCollectionID() (uuid.UUID, error) {"))
 	})
 
+	It("reports a name that is the wildcard throughout from IsWildcard, as ContainsWildcard does for any segment", func() {
+		resp, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
+		Expect(err).NotTo(HaveOccurred())
+		out := fileByName(resp, "uuid/uuid_aip.pb.go")
+		Expect(out).To(ContainSubstring("func (n ItemName) IsWildcard() bool {"))
+		Expect(out).To(ContainSubstring(`return n.OrganizationID == "-" && n.ItemID == "-"`))
+		Expect(out).To(ContainSubstring(`return n.OrganizationID == "-" || n.ItemID == "-"`))
+	})
+
 	It("flows parent ids through Parent(), and gives a parent no method for its children", func() {
 		resp, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
 		Expect(err).NotTo(HaveOccurred())

@@ -97,6 +97,11 @@ func (n CollectionName) ContainsWildcard() bool {
 	return n.CollectionID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n CollectionName) IsWildcard() bool {
+	return n.CollectionID == "-"
+}
+
 // ParseCollectionID returns the collection id as a UUID. It fails for the wildcard "-", which is no id.
 func (n CollectionName) ParseCollectionID() (uuid.UUID, error) {
 	if n.CollectionID == "-" {
@@ -207,6 +212,11 @@ func (n OrganizationName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n OrganizationName) ContainsWildcard() bool {
+	return n.OrganizationID == "-"
+}
+
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n OrganizationName) IsWildcard() bool {
 	return n.OrganizationID == "-"
 }
 
@@ -341,6 +351,11 @@ func (n ItemName) Pattern() string {
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n ItemName) ContainsWildcard() bool {
 	return n.OrganizationID == "-" || n.ItemID == "-"
+}
+
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n ItemName) IsWildcard() bool {
+	return n.OrganizationID == "-" && n.ItemID == "-"
 }
 
 // ParseItemID returns the item id as a UUID. It fails for the wildcard "-", which is no id.

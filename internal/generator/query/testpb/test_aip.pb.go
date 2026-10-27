@@ -91,6 +91,11 @@ func (n BookName) ContainsWildcard() bool {
 	return n.BookID == "-"
 }
 
+// IsWildcard reports whether every variable segment is the AIP-159 wildcard "-".
+func (n BookName) IsWildcard() bool {
+	return n.BookID == "-"
+}
+
 // ParseName parses x.Name as BookName. A failure is a
 // *aip_go.FieldError naming name.
 func (x *Book) ParseName() (BookName, error) {
