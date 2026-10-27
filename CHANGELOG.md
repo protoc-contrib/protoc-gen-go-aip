@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.6.2...v0.7.0) (2026-10-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* keep a UUID segment a string, so it can be the AIP-159 wildcard ([#89](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/89))
+
+### Features
+
+* keep a UUID segment a string, so it can be the AIP-159 wildcard ([#89](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/89)) ([91b6d0f](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/91b6d0f95d2ecc68321f1e94d63344c2f61a293a))
+
 ## [0.6.2](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.6.1...v0.6.2) (2026-10-16)
 
 
