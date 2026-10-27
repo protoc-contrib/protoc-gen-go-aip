@@ -32,10 +32,13 @@ var _ = Describe("one resource type declared in two API versions", func() {
 		var err error
 		shelf, err = (&v2.Book{Shelf: "shelves/" + id.String()}).ParseShelf()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(shelf.ShelfID).To(Equal(id))
+		Expect(shelf.ShelfID).To(Equal(id.String()))
+		got, err := shelf.ParseShelfID()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).To(Equal(id))
 
-		book := v2.BookName{ShelfID: id, BookID: "b1"}
+		book := v2.BookName{ShelfID: id.String(), BookID: "b1"}
 		shelf = book.Parent()
-		Expect(shelf.ShelfID).To(Equal(id))
+		Expect(shelf.ShelfID).To(Equal(id.String()))
 	})
 })

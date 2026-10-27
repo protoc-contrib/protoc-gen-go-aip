@@ -307,38 +307,42 @@ var _ = Describe("resource.Generate validation", func() {
 })
 
 var _ = Describe("resource.Generate UUID segments", func() {
-	It("types a UUID4-annotated segment as uuid.UUID and validates at parse time", func() {
+	It("keeps a UUID4-annotated segment a string, validated at parse time, and reads its UUID through an accessor", func() {
 		resp, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
 		Expect(err).NotTo(HaveOccurred())
 		out := fileByName(resp, "uuid/uuid_aip.pb.go")
 		Expect(out).To(ContainSubstring(`uuid "uuid"`))
-		Expect(out).To(ContainSubstring("CollectionID uuid.UUID"))
+		Expect(out).To(ContainSubstring("CollectionID string"))
 		Expect(out).To(ContainSubstring("uuid.Parse(parts[1])"))
 		Expect(out).To(ContainSubstring(`fmt.Errorf("parse %q: segment 1: %w", s, err)`))
-		// String() renders through uuid.UUID.String() so the struct field
-		// can stay typed, and as "-" for the wildcard, which the field holds
-		// as uuid.Max().
-		Expect(out).To(ContainSubstring("seg1 := n.CollectionID.String()"))
-		Expect(out).To(ContainSubstring(`return "collections/" + seg1`))
+		// the AIP-159 wildcard is not a UUID: it is kept as "-"
+		Expect(out).To(ContainSubstring(`if parts[1] != "-" {`))
+		Expect(out).To(ContainSubstring(`return "collections/" + n.CollectionID`))
+		Expect(out).To(ContainSubstring("return n.CollectionID == \"-\""))
+		Expect(out).To(ContainSubstring("func (n CollectionName) ParseCollectionID() (uuid.UUID, error) {"))
 	})
 
-	It("parses the AIP-159 wildcard into uuid.Max() and reports it from ContainsWildcard", func() {
-		resp, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
-		Expect(err).NotTo(HaveOccurred())
-		out := fileByName(resp, "uuid/uuid_aip.pb.go")
-		Expect(out).To(ContainSubstring(`if parts[1] == "-" {`))
-		Expect(out).To(ContainSubstring("out.CollectionID = uuid.Max()"))
-		Expect(out).To(ContainSubstring("return n.CollectionID == uuid.Max()"))
-	})
-
-	It("flows typed parent ids through Parent() when both resources declare the same UUID segment", func() {
+	It("flows parent ids through Parent(), and builds a child from a typed id", func() {
 		resp, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
 		Expect(err).NotTo(HaveOccurred())
 		out := fileByName(resp, "uuid/uuid_aip.pb.go")
 		Expect(out).To(ContainSubstring("func (n ItemName) Parent() OrganizationName {"))
 		Expect(out).To(ContainSubstring("OrganizationID: n.OrganizationID,"))
-		Expect(out).To(ContainSubstring("OrganizationID uuid.UUID"))
-		Expect(out).To(ContainSubstring("ItemID         uuid.UUID"))
+		Expect(out).To(ContainSubstring("OrganizationID string"))
+		Expect(out).To(ContainSubstring("ItemID         string"))
+		Expect(out).To(ContainSubstring("itemID uuid.UUID,"))
+		Expect(out).To(ContainSubstring("ItemID:         itemID.String(),"))
+	})
+
+	It("reads only a resource's own id through a method, and a parent's through the free helper", func() {
+		resp, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
+		Expect(err).NotTo(HaveOccurred())
+		out := fileByName(resp, "uuid/uuid_aip.pb.go")
+		Expect(out).To(ContainSubstring("func (n ItemName) ParseItemID() (uuid.UUID, error) {"))
+		Expect(out).NotTo(ContainSubstring("func (n ItemName) ParseOrganizationID()"))
+		Expect(out).To(ContainSubstring("func ParseItemID(s string) (uuid.UUID, error) {"))
+		Expect(out).To(ContainSubstring("func ParseItemOrganizationID(s string) (uuid.UUID, error) {"))
+		Expect(out).To(ContainSubstring("return name.Parent().ParseOrganizationID()"))
 	})
 })
 
@@ -378,9 +382,10 @@ var _ = Describe("resource.Generate across packages declaring one type", func() 
 		Expect(v1).To(ContainSubstring("func (x *Book) ParseShelf() (ShelfName, error)"))
 		Expect(v1).To(ContainSubstring("func (n BookName) Parent() ShelfName"))
 		Expect(v1).NotTo(ContainSubstring("versions/v2"))
-		// Only v2's create request types Shelf's ID as a UUID; v1 keeps a string.
+		// Only v2's create request types Shelf's ID as a UUID, so only v2 validates
+		// it and reads it as one; v1 keeps a plain string.
 		Expect(v1).NotTo(ContainSubstring("uuid"))
-		Expect(fileByName(resp, "versions/v2/library_aip.pb.go")).To(ContainSubstring("ShelfID uuid.UUID"))
+		Expect(fileByName(resp, "versions/v2/library_aip.pb.go")).To(ContainSubstring("func (n ShelfName) ParseShelfID() (uuid.UUID, error) {"))
 	})
 
 	It("errors on a reference only other packages declare, naming them", func() {

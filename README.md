@@ -28,7 +28,7 @@ A `.proto` with neither gets no companion.
 > The two generate **different** APIs and are not interchangeable — install
 > only one. If you need einride's resource-name layout (with its
 > `MarshalString` / `UnmarshalString` interface and string-only segments),
-> use einride's plugin. If you need this plugin's UUID-typed segments,
+> use einride's plugin. If you need this plugin's UUID segments,
 > cross-package references, and the AIP query helpers, use this one.
 
 ## Features
@@ -78,26 +78,31 @@ A `.proto` with neither gets no companion.
   einride's plugin).
 - **File-level resources** — `google.api.resource_definition` at file
   scope emits parsers even without a backing message.
-- **UUID-typed segments** — declare `(google.api.field_info).format = UUID4`
+- **UUID segments** — declare `(google.api.field_info).format = UUID4`
   on the `<var>_id` field of a `Create<Resource>Request` (AIP-133) to
-  have the generated struct field typed as `uuid.UUID` — the standard
-  library's `uuid` package, so generated code needs Go 1.27 — and validated at
-  parse time. Only the canonical lowercase form is accepted (AIP-122): an
-  uppercase, braced, `urn:uuid:` or hyphen-less spelling is rejected, since it
-  would format back as a different name. The parent UUID consistency check is automatic across the
-  pattern tree. A UUID cannot hold the AIP-159 wildcard `-`, so a UUID segment
-  holds `uuid.Max()` for it: `Parse` accepts `-` and sets it, `String` renders
-  it as `-` again, and `ContainsWildcard()` reports it, as it does for a string
-  segment. `Max` is no generated UUID (its version is 15) and, unlike the nil
-  UUID, is not "empty", which `Validate()` still refuses. The `Parse<Resource>ID`
-  helper refuses a wildcard: it is not an id.
-- **ID helpers for goverter** — a single-pattern resource whose only
-  variable segment is UUID-typed also gets two free functions,
-  `Format<Resource>Name(id uuid.UUID) string` and
-  `Parse<Resource>ID(s string) (uuid.UUID, error)`, which convert between
-  a whole resource name and its ID. They are plain functions so goverter's
-  `extend` directive can use them, which a method expression or a struct
-  literal can't express.
+  have the segment validated as a UUID at parse time: a canonical lowercase
+  one (AIP-122: an uppercase, braced, `urn:uuid:` or hyphen-less spelling is
+  rejected, since it would format back as a different name), or the AIP-159
+  wildcard `-`. The struct field stays a `string`, because a `uuid.UUID` cannot
+  hold the wildcard, so a name keeps what it was given and `ContainsWildcard()`
+  is the generic `n.X == "-"`. The parent UUID consistency check is automatic
+  across the pattern tree.
+  - **`Parse<Variable>ID()`** on the name returns the resource's *own* id as the
+    standard library's `uuid.UUID` (so generated code needs Go 1.27). It fails
+    for the wildcard, which is no id, and for a value that is not a UUID, which
+    only a name built by hand holds. A parent's id is the parent's own:
+    `name.Parent().Parse<Parent>ID()`.
+  - **`Validate()`** requires every UUID segment to be a canonical, non-nil
+    UUID, so the wildcard fails it: a write validates the name.
+  - **Constructors stay typed:** `Format<Resource>Name(id uuid.UUID)` and
+    `<Parent>.<Child>Name(id uuid.UUID)` take a `uuid.UUID`.
+- **ID helpers for goverter** — a single-pattern resource whose own segment is
+  UUID-typed also gets plain top-level functions, which goverter's `extend`
+  directive can use and a method expression can't express:
+  `Parse<Resource>ID(s string) (uuid.UUID, error)` parses the name, then its own
+  id; `Parse<Resource><Parent>ID(s)` does the same for its parent's, when the
+  parent is in the same package; and `Format<Resource>Name(id uuid.UUID) string`
+  for a pattern with a single variable segment.
 - **AIP-133 create IDs** — that same `Create<Resource>Request` gains a
   `Parse<Resource>ID()` method returning the ID the caller proposed, or
   `uuid.Nil()` when `<resource>_id` is empty: AIP-133 reads that as "the

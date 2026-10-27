@@ -11,55 +11,15 @@ import (
 	"github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/uuid"
 )
 
-var _ = Describe("UUID-typed resource names", func() {
-	It("parses a well-formed UUID4 segment into a typed struct", func() {
+var _ = Describe("UUID-validated resource names", func() {
+	It("parses a well-formed UUID4 segment, which the name keeps as a string", func() {
 		id := stduuid.MustParse("11111111-1111-4111-8111-111111111111")
 
 		got, err := uuid.ParseCollectionName("collections/" + id.String())
 		Expect(err).NotTo(HaveOccurred())
-		Expect(got).To(Equal(uuid.CollectionName{CollectionID: id}))
+		Expect(got).To(Equal(uuid.CollectionName{CollectionID: id.String()}))
 		Expect(got.String()).To(Equal("collections/" + id.String()))
-	})
-
-	Describe("the AIP-159 wildcard", func() {
-		It("parses `-` for a UUID segment, which ContainsWildcard reports and String renders again", func() {
-			got, err := uuid.ParseCollectionName("collections/-")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(got.ContainsWildcard()).To(BeTrue())
-			Expect(got.String()).To(Equal("collections/-"))
-		})
-
-		It("parses `-` for the parent of a child, and keeps the child's own id", func() {
-			id := stduuid.MustParse("22222222-2222-4222-8222-222222222222")
-
-			got, err := uuid.ParseItemName("organizations/-/items/" + id.String())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(got.ContainsWildcard()).To(BeTrue())
-			Expect(got.ItemID).To(Equal(id))
-			Expect(got.String()).To(Equal("organizations/-/items/" + id.String()))
-		})
-
-		It("parses `-` for the child's own id too", func() {
-			parent := stduuid.MustParse("11111111-1111-4111-8111-111111111111")
-
-			got, err := uuid.ParseItemName("organizations/" + parent.String() + "/items/-")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(got.ContainsWildcard()).To(BeTrue())
-			Expect(got.OrganizationID).To(Equal(parent))
-		})
-
-		It("is not in a name without it", func() {
-			id := stduuid.MustParse("11111111-1111-4111-8111-111111111111")
-
-			got, err := uuid.ParseCollectionName("collections/" + id.String())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(got.ContainsWildcard()).To(BeFalse())
-		})
-
-		It("is not an id: ParseCollectionID refuses it", func() {
-			_, err := uuid.ParseCollectionID("collections/-")
-			Expect(err).To(MatchError(ContainSubstring("the wildcard is not an id")))
-		})
+		Expect(got.Validate()).To(Succeed())
 	})
 
 	It("wraps the underlying uuid.Parse error and names the segment index", func() {
@@ -81,21 +41,125 @@ var _ = Describe("UUID-typed resource names", func() {
 		Entry("no hyphens", "11111111111141118111111111111111"),
 	)
 
-	It("round-trips a UUID id through Format and Parse helpers", func() {
-		id := stduuid.MustParse("44444444-4444-4444-8444-444444444444")
+	Describe("the typed id", func() {
+		It("is the own segment's UUID", func() {
+			id := stduuid.MustParse("44444444-4444-4444-8444-444444444444")
 
-		name := uuid.FormatCollectionName(id)
-		Expect(name).To(Equal("collections/" + id.String()))
+			name, err := uuid.ParseCollectionName(uuid.FormatCollectionName(id))
+			Expect(err).NotTo(HaveOccurred())
+			got, err := name.ParseCollectionID()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(Equal(id))
+		})
 
-		got, err := uuid.ParseCollectionID(name)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(got).To(Equal(id))
+		It("fails for a value that is not a UUID, which only a name built by hand holds", func() {
+			_, err := uuid.CollectionName{CollectionID: "not-a-uuid"}.ParseCollectionID()
+			Expect(err).To(MatchError(ContainSubstring("collection:")))
+		})
+
+		It("a parent's id is read through Parent()", func() {
+			org := stduuid.MustParse("22222222-2222-4222-8222-222222222222")
+			item := stduuid.MustParse("33333333-3333-4333-8333-333333333333")
+
+			name, err := uuid.ParseItemName("organizations/" + org.String() + "/items/" + item.String())
+			Expect(err).NotTo(HaveOccurred())
+			got, err := name.Parent().ParseOrganizationID()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(Equal(org))
+			own, err := name.ParseItemID()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(own).To(Equal(item))
+		})
 	})
 
-	It("surfaces a parse error from ParseCollectionID when the name is malformed", func() {
-		_, err := uuid.ParseCollectionID("collections/not-a-uuid")
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring(`parse "collections/not-a-uuid": segment 1:`))
+	Describe("the AIP-159 wildcard", func() {
+		It("is a plain `-` in a UUID segment, which the name keeps and prints", func() {
+			got, err := uuid.ParseCollectionName("collections/-")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(Equal(uuid.CollectionName{CollectionID: "-"}))
+			Expect(got.String()).To(Equal("collections/-"))
+			Expect(got.ContainsWildcard()).To(BeTrue())
+		})
+
+		It("is allowed for the parent of a child, which keeps its own id", func() {
+			id := stduuid.MustParse("22222222-2222-4222-8222-222222222222")
+
+			got, err := uuid.ParseItemName("organizations/-/items/" + id.String())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got.ContainsWildcard()).To(BeTrue())
+			Expect(got.Parent().ContainsWildcard()).To(BeTrue())
+			Expect(got.ItemID).To(Equal(id.String()))
+			own, err := got.ParseItemID()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(own).To(Equal(id))
+		})
+
+		It("is no id: the accessor refuses it, for the parent and for the leaf", func() {
+			_, err := uuid.CollectionName{CollectionID: "-"}.ParseCollectionID()
+			Expect(err).To(MatchError(ContainSubstring("the wildcard is not an id")))
+
+			leaf, err := uuid.ParseItemName("organizations/22222222-2222-4222-8222-222222222222/items/-")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = leaf.ParseItemID()
+			Expect(err).To(MatchError(ContainSubstring("the wildcard is not an id")))
+		})
+
+		It("is not a valid name to write: Validate refuses it", func() {
+			Expect(uuid.CollectionName{CollectionID: "-"}.Validate()).To(MatchError(ContainSubstring("not a canonical non-nil UUID")))
+		})
+
+		It("is not in a name without it", func() {
+			got, err := uuid.ParseCollectionName("collections/11111111-1111-4111-8111-111111111111")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got.ContainsWildcard()).To(BeFalse())
+		})
+	})
+
+	It("Validate refuses the nil UUID and a value that is not a UUID", func() {
+		Expect(uuid.CollectionName{CollectionID: stduuid.Nil().String()}.Validate()).To(MatchError(ContainSubstring("not a canonical non-nil UUID")))
+		Expect(uuid.CollectionName{CollectionID: "abc"}.Validate()).To(MatchError(ContainSubstring("not a canonical non-nil UUID")))
+	})
+
+	Describe("the free helpers", func() {
+		It("round-trips an id through Format and Parse", func() {
+			id := stduuid.MustParse("44444444-4444-4444-8444-444444444444")
+
+			name := uuid.FormatCollectionName(id)
+			Expect(name).To(Equal("collections/" + id.String()))
+
+			got, err := uuid.ParseCollectionID(name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(Equal(id))
+		})
+
+		It("surfaces a parse error from ParseCollectionID when the name is malformed", func() {
+			_, err := uuid.ParseCollectionID("collections/not-a-uuid")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring(`parse "collections/not-a-uuid": segment 1:`))
+		})
+
+		It("refuses a wildcard: it is not an id", func() {
+			_, err := uuid.ParseCollectionID("collections/-")
+			Expect(err).To(MatchError(ContainSubstring("the wildcard is not an id")))
+		})
+
+		It("reads a nested resource's own id and its parent's from the name", func() {
+			org := stduuid.MustParse("22222222-2222-4222-8222-222222222222")
+			item := stduuid.MustParse("33333333-3333-4333-8333-333333333333")
+			name := "organizations/" + org.String() + "/items/" + item.String()
+
+			own, err := uuid.ParseItemID(name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(own).To(Equal(item))
+			parent, err := uuid.ParseItemOrganizationID(name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(parent).To(Equal(org))
+		})
+
+		It("refuses a wildcard parent: ParseItemOrganizationID is for a name that is concrete", func() {
+			_, err := uuid.ParseItemOrganizationID("organizations/-/items/33333333-3333-4333-8333-333333333333")
+			Expect(err).To(MatchError(ContainSubstring("the wildcard is not an id")))
+		})
 	})
 
 	Describe("the AIP-133 create-ID accessor", func() {
@@ -111,7 +175,7 @@ var _ = Describe("UUID-typed resource names", func() {
 			got, err := (&uuid.CreateCollectionRequest{CollectionId: id.String()}).ParseCollectionID()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(got).To(Equal(id))
-			Expect(uuid.CollectionName{CollectionID: got}.String()).To(Equal("collections/" + id.String()))
+			Expect(uuid.FormatCollectionName(got)).To(Equal("collections/" + id.String()))
 		})
 
 		It("names the field when the proposed ID is not a UUID", func() {
@@ -143,12 +207,13 @@ var _ = Describe("UUID-typed resource names", func() {
 		})
 	})
 
-	It("flows typed parent ids through Parent() without string bridging", func() {
+	It("builds a child from its parent and a typed id, and goes back up through Parent()", func() {
 		orgID := stduuid.MustParse("22222222-2222-4222-8222-222222222222")
 		itemID := stduuid.MustParse("33333333-3333-4333-8333-333333333333")
 
-		child := uuid.ItemName{OrganizationID: orgID, ItemID: itemID}
-		Expect(child.Parent()).To(Equal(uuid.OrganizationName{OrganizationID: orgID}))
+		child := uuid.OrganizationName{OrganizationID: orgID.String()}.ItemName(itemID)
+		Expect(child).To(Equal(uuid.ItemName{OrganizationID: orgID.String(), ItemID: itemID.String()}))
+		Expect(child.Parent()).To(Equal(uuid.OrganizationName{OrganizationID: orgID.String()}))
 		Expect(child.String()).To(Equal("organizations/" + orgID.String() + "/items/" + itemID.String()))
 	})
 })

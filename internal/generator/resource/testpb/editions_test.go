@@ -22,7 +22,7 @@ var _ = Describe("edition 2023 fields with explicit presence", func() {
 		}
 		name, err := gadget.ParseName()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(name.GadgetID).To(Equal(id))
+		Expect(name.GadgetID).To(Equal(id.String()))
 		twin, err := gadget.ParseTwin()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(twin).To(Equal(name))
