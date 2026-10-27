@@ -85,7 +85,12 @@ A `.proto` with neither gets no companion.
   parse time. Only the canonical lowercase form is accepted (AIP-122): an
   uppercase, braced, `urn:uuid:` or hyphen-less spelling is rejected, since it
   would format back as a different name. The parent UUID consistency check is automatic across the
-  pattern tree.
+  pattern tree. A UUID cannot hold the AIP-159 wildcard `-`, so a UUID segment
+  holds `uuid.Max()` for it: `Parse` accepts `-` and sets it, `String` renders
+  it as `-` again, and `ContainsWildcard()` reports it, as it does for a string
+  segment. `Max` is no generated UUID (its version is 15) and, unlike the nil
+  UUID, is not "empty", which `Validate()` still refuses. The `Parse<Resource>ID`
+  helper refuses a wildcard: it is not an id.
 - **ID helpers for goverter** — a single-pattern resource whose only
   variable segment is UUID-typed also gets two free functions,
   `Format<Resource>Name(id uuid.UUID) string` and

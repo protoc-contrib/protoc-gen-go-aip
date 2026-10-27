@@ -28,14 +28,18 @@ func ParseGadgetName(s string) (GadgetName, error) {
 	if parts[1] == "" {
 		return GadgetName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return GadgetName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] == "-" {
+		out.GadgetID = uuid.Max()
+	} else {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return GadgetName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return GadgetName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
+		out.GadgetID = v1
 	}
-	if v1.String() != parts[1] {
-		return GadgetName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.GadgetID = v1
 	return out, nil
 }
 
@@ -49,7 +53,11 @@ func ParseFullGadgetName(s string) (GadgetName, error) {
 
 // String returns the relative resource name "gadgets/{gadget}" and implements fmt.Stringer.
 func (n GadgetName) String() string {
-	return "gadgets/" + n.GadgetID.String()
+	seg1 := n.GadgetID.String()
+	if n.GadgetID == uuid.Max() {
+		seg1 = "-"
+	}
+	return "gadgets/" + seg1
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//example.com/".
@@ -92,7 +100,7 @@ func (n GadgetName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n GadgetName) ContainsWildcard() bool {
-	return false
+	return n.GadgetID == uuid.Max()
 }
 
 // FormatGadgetName returns the relative resource name for a "example.com/Gadget" with the given id.
@@ -103,6 +111,9 @@ func FormatGadgetName(id uuid.UUID) string {
 // ParseGadgetID parses s as GadgetName and returns its GadgetID field.
 func ParseGadgetID(s string) (uuid.UUID, error) {
 	parsed, err := ParseGadgetName(s)
+	if err == nil && parsed.ContainsWildcard() {
+		return uuid.Nil(), fmt.Errorf("parse %q: the wildcard is not an id", s)
+	}
 	return parsed.GadgetID, err
 }
 

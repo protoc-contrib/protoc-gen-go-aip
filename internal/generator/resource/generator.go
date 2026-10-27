@@ -472,6 +472,9 @@ func emitSingleIDHelpers(g *protogen.GeneratedFile, r *resource, p pattern) {
 	g.P("// ", parseFn, " parses s as ", typeName, " and returns its ", fieldName, " field.")
 	g.P("func ", parseFn, "(s string) (", idType, ", error) {")
 	g.P("parsed, err := ", r.ParseFunc.GoName, "(s)")
+	g.P("if err == nil && parsed.ContainsWildcard() {")
+	g.P("return ", uuidPackage.Ident("Nil"), "(), ", fmtPackage.Ident("Errorf"), "(\"parse %q: the wildcard is not an id\", s)")
+	g.P("}")
 	g.P("return parsed.", fieldName, ", err")
 	g.P("}")
 	g.P()
@@ -614,6 +617,13 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 			g.P("return ", typeName, "{}, ", fmtPackage.Ident("Errorf"), "(\"parse %q: empty value for segment ", i, "\", s)")
 			g.P("}")
 			if s.Format == formatUUID4 {
+				// The AIP-159 wildcard "-" is not a UUID, which cannot hold it:
+				// it parses as uuid.Max(), which ContainsWildcard reports and
+				// String renders as "-" again. Max is no generated UUID (its
+				// version is 15), and unlike the nil UUID it is not "empty".
+				g.P("if parts[", i, "] == \"-\" {")
+				g.P("out.", s.FieldName(), " = ", uuidPackage.Ident("Max"), "()")
+				g.P("} else {")
 				g.P("v", i, ", err := ", uuidPackage.Ident("Parse"), "(parts[", i, "])")
 				g.P("if err != nil {")
 				g.P("return ", typeName, "{}, ", fmtPackage.Ident("Errorf"), "(\"parse %q: segment ", i, ": %w\", s, err)")
@@ -625,6 +635,7 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 				g.P("return ", typeName, "{}, ", fmtPackage.Ident("Errorf"), "(\"parse %q: segment ", i, ": not a canonical lowercase UUID\", s)")
 				g.P("}")
 				g.P("out.", s.FieldName(), " = v", i)
+				g.P("}")
 				continue
 			}
 			g.P("out.", s.FieldName(), " = parts[", i, "]")
@@ -651,6 +662,15 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 
 	g.P("// String returns the relative resource name ", strconv.Quote(patStr), " and implements fmt.Stringer.")
 	g.P("func (n ", typeName, ") String() string {")
+	// a UUID segment renders as "-" when it holds the wildcard, uuid.Max()
+	for i, s := range p {
+		if s.Var && s.Format == formatUUID4 {
+			g.P("seg", i, " := n.", s.FieldName(), ".String()")
+			g.P("if n.", s.FieldName(), " == ", uuidPackage.Ident("Max"), "() {")
+			g.P("seg", i, " = \"-\"")
+			g.P("}")
+		}
+	}
 	g.P("return ", nameExpression(p))
 	g.P("}")
 	g.P()
@@ -772,30 +792,29 @@ func emitPattern(g *protogen.GeneratedFile, typeName, patStr string) {
 
 // emitContainsWildcard emits ContainsWildcard() returning true if any
 // variable segment equals "-" — AIP-159's wildcard sentinel for
-// cross-collection list operations. UUID-typed fields can't carry the
-// wildcard so they are excluded.
+// cross-collection reads. A UUID-typed segment cannot hold "-", so it holds
+// uuid.Max() for it, which Parse sets and String renders as "-".
 func emitContainsWildcard(g *protogen.GeneratedFile, typeName string, p pattern) {
-	var fields []string
+	var conds []any
 	for _, s := range p {
-		if !s.Var || s.Format == formatUUID4 {
+		if !s.Var {
 			continue
 		}
-		fields = append(fields, "n."+s.FieldName())
+		if len(conds) > 0 {
+			conds = append(conds, " || ")
+		}
+		if s.Format == formatUUID4 {
+			conds = append(conds, "n."+s.FieldName(), " == ", uuidPackage.Ident("Max"), "()")
+			continue
+		}
+		conds = append(conds, "n."+s.FieldName()+" == \"-\"")
 	}
 	g.P("// ContainsWildcard reports whether any variable segment is the AIP-159 wildcard ", strconv.Quote("-"), ".")
 	g.P("func (n ", typeName, ") ContainsWildcard() bool {")
-	if len(fields) == 0 {
+	if len(conds) == 0 {
 		g.P("return false")
 	} else {
-		var expr strings.Builder
-		for i, f := range fields {
-			if i > 0 {
-				expr.WriteString(" || ")
-			}
-			expr.WriteString(f)
-			expr.WriteString(" == \"-\"")
-		}
-		g.P("return ", expr.String())
+		g.P(append([]any{"return "}, conds...)...)
 	}
 	g.P("}")
 	g.P()
@@ -888,8 +907,8 @@ func segmentGoType(g *protogen.GeneratedFile, s segment) any {
 
 // nameExpression builds the string-concatenation expression used in String().
 // For "projects/{project}/books/{book}" it yields: "projects/" + n.ProjectID + "/books/" + n.BookID
-// UUID4 segments render through their .String() method so the field type stays
-// uuid.UUID in the struct.
+// UUID4 segments render through the seg<i> variables String declares, so the
+// field type stays uuid.UUID in the struct.
 func nameExpression(p pattern) string {
 	var parts []string
 	var literal string
@@ -907,7 +926,8 @@ func nameExpression(p pattern) string {
 			flushLiteral()
 			expr := "n." + s.FieldName()
 			if s.Format == formatUUID4 {
-				expr += ".String()"
+				// rendered into seg<i> by String, which turns the wildcard to "-"
+				expr = "seg" + strconv.Itoa(i)
 			}
 			parts = append(parts, expr)
 			continue

@@ -28,14 +28,18 @@ func ParseCollectionName(s string) (CollectionName, error) {
 	if parts[1] == "" {
 		return CollectionName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return CollectionName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] == "-" {
+		out.CollectionID = uuid.Max()
+	} else {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return CollectionName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return CollectionName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
+		out.CollectionID = v1
 	}
-	if v1.String() != parts[1] {
-		return CollectionName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.CollectionID = v1
 	return out, nil
 }
 
@@ -49,7 +53,11 @@ func ParseFullCollectionName(s string) (CollectionName, error) {
 
 // String returns the relative resource name "collections/{collection}" and implements fmt.Stringer.
 func (n CollectionName) String() string {
-	return "collections/" + n.CollectionID.String()
+	seg1 := n.CollectionID.String()
+	if n.CollectionID == uuid.Max() {
+		seg1 = "-"
+	}
+	return "collections/" + seg1
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//example.com/".
@@ -92,7 +100,7 @@ func (n CollectionName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n CollectionName) ContainsWildcard() bool {
-	return false
+	return n.CollectionID == uuid.Max()
 }
 
 // FormatCollectionName returns the relative resource name for a "example.com/Collection" with the given id.
@@ -103,6 +111,9 @@ func FormatCollectionName(id uuid.UUID) string {
 // ParseCollectionID parses s as CollectionName and returns its CollectionID field.
 func ParseCollectionID(s string) (uuid.UUID, error) {
 	parsed, err := ParseCollectionName(s)
+	if err == nil && parsed.ContainsWildcard() {
+		return uuid.Nil(), fmt.Errorf("parse %q: the wildcard is not an id", s)
+	}
 	return parsed.CollectionID, err
 }
 
@@ -124,14 +135,18 @@ func ParseOrganizationName(s string) (OrganizationName, error) {
 	if parts[1] == "" {
 		return OrganizationName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return OrganizationName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] == "-" {
+		out.OrganizationID = uuid.Max()
+	} else {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return OrganizationName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return OrganizationName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
+		out.OrganizationID = v1
 	}
-	if v1.String() != parts[1] {
-		return OrganizationName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.OrganizationID = v1
 	return out, nil
 }
 
@@ -145,7 +160,11 @@ func ParseFullOrganizationName(s string) (OrganizationName, error) {
 
 // String returns the relative resource name "organizations/{organization}" and implements fmt.Stringer.
 func (n OrganizationName) String() string {
-	return "organizations/" + n.OrganizationID.String()
+	seg1 := n.OrganizationID.String()
+	if n.OrganizationID == uuid.Max() {
+		seg1 = "-"
+	}
+	return "organizations/" + seg1
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//example.com/".
@@ -188,7 +207,7 @@ func (n OrganizationName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n OrganizationName) ContainsWildcard() bool {
-	return false
+	return n.OrganizationID == uuid.Max()
 }
 
 // FormatOrganizationName returns the relative resource name for a "example.com/Organization" with the given id.
@@ -199,6 +218,9 @@ func FormatOrganizationName(id uuid.UUID) string {
 // ParseOrganizationID parses s as OrganizationName and returns its OrganizationID field.
 func ParseOrganizationID(s string) (uuid.UUID, error) {
 	parsed, err := ParseOrganizationName(s)
+	if err == nil && parsed.ContainsWildcard() {
+		return uuid.Nil(), fmt.Errorf("parse %q: the wildcard is not an id", s)
+	}
 	return parsed.OrganizationID, err
 }
 
@@ -221,28 +243,36 @@ func ParseItemName(s string) (ItemName, error) {
 	if parts[1] == "" {
 		return ItemName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return ItemName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] == "-" {
+		out.OrganizationID = uuid.Max()
+	} else {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return ItemName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return ItemName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
+		out.OrganizationID = v1
 	}
-	if v1.String() != parts[1] {
-		return ItemName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.OrganizationID = v1
 	if parts[2] != "items" {
 		return ItemName{}, fmt.Errorf("parse %q: bad segment 2, want: %q, got: %q", s, "items", parts[2])
 	}
 	if parts[3] == "" {
 		return ItemName{}, fmt.Errorf("parse %q: empty value for segment 3", s)
 	}
-	v3, err := uuid.Parse(parts[3])
-	if err != nil {
-		return ItemName{}, fmt.Errorf("parse %q: segment 3: %w", s, err)
+	if parts[3] == "-" {
+		out.ItemID = uuid.Max()
+	} else {
+		v3, err := uuid.Parse(parts[3])
+		if err != nil {
+			return ItemName{}, fmt.Errorf("parse %q: segment 3: %w", s, err)
+		}
+		if v3.String() != parts[3] {
+			return ItemName{}, fmt.Errorf("parse %q: segment 3: not a canonical lowercase UUID", s)
+		}
+		out.ItemID = v3
 	}
-	if v3.String() != parts[3] {
-		return ItemName{}, fmt.Errorf("parse %q: segment 3: not a canonical lowercase UUID", s)
-	}
-	out.ItemID = v3
 	return out, nil
 }
 
@@ -256,7 +286,15 @@ func ParseFullItemName(s string) (ItemName, error) {
 
 // String returns the relative resource name "organizations/{organization}/items/{item}" and implements fmt.Stringer.
 func (n ItemName) String() string {
-	return "organizations/" + n.OrganizationID.String() + "/items/" + n.ItemID.String()
+	seg1 := n.OrganizationID.String()
+	if n.OrganizationID == uuid.Max() {
+		seg1 = "-"
+	}
+	seg3 := n.ItemID.String()
+	if n.ItemID == uuid.Max() {
+		seg3 = "-"
+	}
+	return "organizations/" + seg1 + "/items/" + seg3
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//example.com/".
@@ -302,7 +340,7 @@ func (n ItemName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n ItemName) ContainsWildcard() bool {
-	return false
+	return n.OrganizationID == uuid.Max() || n.ItemID == uuid.Max()
 }
 
 // Parent returns the parent OrganizationName derived from this resource's fields.

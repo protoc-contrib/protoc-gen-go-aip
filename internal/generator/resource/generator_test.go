@@ -316,8 +316,19 @@ var _ = Describe("resource.Generate UUID segments", func() {
 		Expect(out).To(ContainSubstring("uuid.Parse(parts[1])"))
 		Expect(out).To(ContainSubstring(`fmt.Errorf("parse %q: segment 1: %w", s, err)`))
 		// String() renders through uuid.UUID.String() so the struct field
-		// can stay typed.
-		Expect(out).To(ContainSubstring(`return "collections/" + n.CollectionID.String()`))
+		// can stay typed, and as "-" for the wildcard, which the field holds
+		// as uuid.Max().
+		Expect(out).To(ContainSubstring("seg1 := n.CollectionID.String()"))
+		Expect(out).To(ContainSubstring(`return "collections/" + seg1`))
+	})
+
+	It("parses the AIP-159 wildcard into uuid.Max() and reports it from ContainsWildcard", func() {
+		resp, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
+		Expect(err).NotTo(HaveOccurred())
+		out := fileByName(resp, "uuid/uuid_aip.pb.go")
+		Expect(out).To(ContainSubstring(`if parts[1] == "-" {`))
+		Expect(out).To(ContainSubstring("out.CollectionID = uuid.Max()"))
+		Expect(out).To(ContainSubstring("return n.CollectionID == uuid.Max()"))
 	})
 
 	It("flows typed parent ids through Parent() when both resources declare the same UUID segment", func() {

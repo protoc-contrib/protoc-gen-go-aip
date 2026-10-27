@@ -28,14 +28,18 @@ func ParseShelfName(s string) (ShelfName, error) {
 	if parts[1] == "" {
 		return ShelfName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return ShelfName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] == "-" {
+		out.ShelfID = uuid.Max()
+	} else {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return ShelfName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return ShelfName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
+		out.ShelfID = v1
 	}
-	if v1.String() != parts[1] {
-		return ShelfName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.ShelfID = v1
 	return out, nil
 }
 
@@ -49,7 +53,11 @@ func ParseFullShelfName(s string) (ShelfName, error) {
 
 // String returns the relative resource name "shelves/{shelf}" and implements fmt.Stringer.
 func (n ShelfName) String() string {
-	return "shelves/" + n.ShelfID.String()
+	seg1 := n.ShelfID.String()
+	if n.ShelfID == uuid.Max() {
+		seg1 = "-"
+	}
+	return "shelves/" + seg1
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//versions.example.com/".
@@ -92,7 +100,7 @@ func (n ShelfName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n ShelfName) ContainsWildcard() bool {
-	return false
+	return n.ShelfID == uuid.Max()
 }
 
 // FormatShelfName returns the relative resource name for a "versions.example.com/Shelf" with the given id.
@@ -103,6 +111,9 @@ func FormatShelfName(id uuid.UUID) string {
 // ParseShelfID parses s as ShelfName and returns its ShelfID field.
 func ParseShelfID(s string) (uuid.UUID, error) {
 	parsed, err := ParseShelfName(s)
+	if err == nil && parsed.ContainsWildcard() {
+		return uuid.Nil(), fmt.Errorf("parse %q: the wildcard is not an id", s)
+	}
 	return parsed.ShelfID, err
 }
 
@@ -125,14 +136,18 @@ func ParseBookName(s string) (BookName, error) {
 	if parts[1] == "" {
 		return BookName{}, fmt.Errorf("parse %q: empty value for segment 1", s)
 	}
-	v1, err := uuid.Parse(parts[1])
-	if err != nil {
-		return BookName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+	if parts[1] == "-" {
+		out.ShelfID = uuid.Max()
+	} else {
+		v1, err := uuid.Parse(parts[1])
+		if err != nil {
+			return BookName{}, fmt.Errorf("parse %q: segment 1: %w", s, err)
+		}
+		if v1.String() != parts[1] {
+			return BookName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
+		}
+		out.ShelfID = v1
 	}
-	if v1.String() != parts[1] {
-		return BookName{}, fmt.Errorf("parse %q: segment 1: not a canonical lowercase UUID", s)
-	}
-	out.ShelfID = v1
 	if parts[2] != "books" {
 		return BookName{}, fmt.Errorf("parse %q: bad segment 2, want: %q, got: %q", s, "books", parts[2])
 	}
@@ -153,7 +168,11 @@ func ParseFullBookName(s string) (BookName, error) {
 
 // String returns the relative resource name "shelves/{shelf}/books/{book}" and implements fmt.Stringer.
 func (n BookName) String() string {
-	return "shelves/" + n.ShelfID.String() + "/books/" + n.BookID
+	seg1 := n.ShelfID.String()
+	if n.ShelfID == uuid.Max() {
+		seg1 = "-"
+	}
+	return "shelves/" + seg1 + "/books/" + n.BookID
 }
 
 // FullName returns the fully-qualified resource name prefixed with "//versions.example.com/".
@@ -202,7 +221,7 @@ func (n BookName) Pattern() string {
 
 // ContainsWildcard reports whether any variable segment is the AIP-159 wildcard "-".
 func (n BookName) ContainsWildcard() bool {
-	return n.BookID == "-"
+	return n.ShelfID == uuid.Max() || n.BookID == "-"
 }
 
 // Parent returns the parent ShelfName derived from this resource's fields.
