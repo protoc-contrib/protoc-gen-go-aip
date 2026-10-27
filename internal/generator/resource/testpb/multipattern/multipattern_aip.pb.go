@@ -266,16 +266,6 @@ func (n PublisherBookName) Parent() PublisherName {
 	}
 }
 
-// PublisherBookName builds a PublisherBookName under this PublisherName.
-func (n PublisherName) PublisherBookName(
-	bookID string,
-) PublisherBookName {
-	return PublisherBookName{
-		PublisherID: n.PublisherID,
-		BookID:      bookID,
-	}
-}
-
 func (n PublisherBookName) mustEmbedBookName() {}
 
 // AuthorBookName is the "authors/{author}/books/{book}" variant of BookName.
@@ -369,16 +359,6 @@ func (n AuthorBookName) ContainsWildcard() bool {
 func (n AuthorBookName) Parent() AuthorName {
 	return AuthorName{
 		AuthorID: n.AuthorID,
-	}
-}
-
-// AuthorBookName builds a AuthorBookName under this AuthorName.
-func (n AuthorName) AuthorBookName(
-	bookID string,
-) AuthorBookName {
-	return AuthorBookName{
-		AuthorID: n.AuthorID,
-		BookID:   bookID,
 	}
 }
 

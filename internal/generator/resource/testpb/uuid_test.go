@@ -207,12 +207,11 @@ var _ = Describe("UUID-validated resource names", func() {
 		})
 	})
 
-	It("builds a child from its parent and a typed id, and goes back up through Parent()", func() {
+	It("goes back up from a child through Parent()", func() {
 		orgID := stduuid.MustParse("22222222-2222-4222-8222-222222222222")
 		itemID := stduuid.MustParse("33333333-3333-4333-8333-333333333333")
 
-		child := uuid.OrganizationName{OrganizationID: orgID.String()}.ItemName(itemID)
-		Expect(child).To(Equal(uuid.ItemName{OrganizationID: orgID.String(), ItemID: itemID.String()}))
+		child := uuid.ItemName{OrganizationID: orgID.String(), ItemID: itemID.String()}
 		Expect(child.Parent()).To(Equal(uuid.OrganizationName{OrganizationID: orgID.String()}))
 		Expect(child.String()).To(Equal("organizations/" + orgID.String() + "/items/" + itemID.String()))
 	})

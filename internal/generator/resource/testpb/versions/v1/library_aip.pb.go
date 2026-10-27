@@ -192,16 +192,6 @@ func (n BookName) Parent() ShelfName {
 	}
 }
 
-// BookName builds a BookName under this ShelfName.
-func (n ShelfName) BookName(
-	bookID string,
-) BookName {
-	return BookName{
-		ShelfID: n.ShelfID,
-		BookID:  bookID,
-	}
-}
-
 // ParseName parses x.Name as ShelfName. A failure is a
 // *aip_go.FieldError naming name.
 func (x *Shelf) ParseName() (ShelfName, error) {

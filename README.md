@@ -56,11 +56,10 @@ A `.proto` with neither gets no companion.
 - **`Parent()` navigation** — child resources get a `Parent()` method
   returning the matched parent's generated type. Each pattern of a
   multi-pattern resource returns its own parent type.
-- **Parent constructors** — the parent struct gains a method named after
-  the child type that builds the child by inheriting parent fields and
-  taking only the child-only segments as arguments
-  (e.g. `parent.ProjectThingName(thingID)`). Skipped when the parent is in
-  another Go package, which Go can't add a method to; `Parent()` still works.
+- **A parent knows nothing of its children.** The dependency runs from the child
+  to its parent (`Parent()`), never the reverse: a parent struct gains no method
+  per child, so adding a child resource leaves the parent's generated API alone.
+  Build a child's name from its parent's fields with a struct literal.
 - **Resource references** — every singular string field annotated with
   `google.api.resource_reference` (including cross-package references)
   gains a `Parse<Field>()` method on the owning message that delegates to
@@ -94,8 +93,7 @@ A `.proto` with neither gets no companion.
     `name.Parent().Parse<Parent>ID()`.
   - **`Validate()`** requires every UUID segment to be a canonical, non-nil
     UUID, so the wildcard fails it: a write validates the name.
-  - **Constructors stay typed:** `Format<Resource>Name(id uuid.UUID)` and
-    `<Parent>.<Child>Name(id uuid.UUID)` take a `uuid.UUID`.
+  - **`Format<Resource>Name(id uuid.UUID)`** takes a `uuid.UUID` and stores its string.
 - **ID helpers for goverter** — a single-pattern resource whose own segment is
   UUID-typed also gets plain top-level functions, which goverter's `extend`
   directive can use and a method expression can't express:

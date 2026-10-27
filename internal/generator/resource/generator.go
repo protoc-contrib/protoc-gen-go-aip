@@ -744,7 +744,6 @@ func emitPatternStruct(g *protogen.GeneratedFile, r *resource, typeName, funcNam
 
 	if parent != nil {
 		emitParent(g, typeName, parent)
-		emitParentConstructor(g, r.ParsedType.GoImportPath, typeName, parent, p)
 	}
 
 	if embedFunc != "" {
@@ -860,52 +859,6 @@ func emitContainsWildcard(g *protogen.GeneratedFile, typeName string, p pattern)
 	g.P()
 }
 
-// emitParentConstructor emits a constructor method on the parent struct
-// that builds this child resource from the parent's fields plus the
-// child-only segments. Skipped when the parent's type lives in a different
-// Go package from the child's — Go can't add methods across package
-// boundaries. For a multi-pattern parent the method goes on the matched
-// variant struct, since parent.ReturnType is the interface.
-func emitParentConstructor(g *protogen.GeneratedFile, childImportPath protogen.GoImportPath, childTypeName string, parent *parentBinding, childPattern pattern) {
-	if parent.Variant.GoImportPath != childImportPath {
-		return
-	}
-	extraSegs := childPattern[len(parent.Pattern):]
-	g.P("// ", childTypeName, " builds a ", childTypeName, " under this ", parent.Variant.GoName, ".")
-	g.P("func (n ", parent.Variant.GoName, ") ", childTypeName, "(")
-	for _, s := range extraSegs {
-		if s.Var {
-			g.P(lowerCamel(s.FieldName()), " ", segmentParamType(g, s), ",")
-		}
-	}
-	g.P(") ", childTypeName, " {")
-	g.P("return ", childTypeName, "{")
-	for _, s := range parent.Pattern {
-		if s.Var {
-			g.P(s.FieldName(), ": n.", s.FieldName(), ",")
-		}
-	}
-	for _, s := range extraSegs {
-		if s.Var {
-			g.P(s.FieldName(), ": ", segmentFromParam(s, lowerCamel(s.FieldName())), ",")
-		}
-	}
-	g.P("}")
-	g.P("}")
-	g.P()
-}
-
-// lowerCamel turns "ProjectID" into "projectID" — the parameter-name
-// form used in generated parent constructors.
-func lowerCamel(s string) string {
-	if s == "" {
-		return s
-	}
-	r := []rune(s)
-	r[0] = r[0] - 'A' + 'a'
-	return string(r)
-}
-
 // emitParent emits a Parent() method that returns the parent resource's
 // generated type. Fields on the parent pattern are mapped by variable name
 // from the receiver — patternsEqual already guaranteed those names match.
@@ -939,24 +892,6 @@ func parentPattern(p pattern) (pattern, bool) {
 // AIP-159 wildcard "-"; the typed id comes from the Parse<Variable>ID accessor.
 func segmentGoType(g *protogen.GeneratedFile, s segment) any {
 	return "string"
-}
-
-// segmentParamType returns the type a constructor takes for a variable segment:
-// a uuid.UUID for a UUID segment, which the struct then stores as a string.
-func segmentParamType(g *protogen.GeneratedFile, s segment) any {
-	if s.Format == formatUUID4 {
-		return g.QualifiedGoIdent(uuidPackage.Ident("UUID"))
-	}
-	return "string"
-}
-
-// segmentFromParam is the expression that stores a constructor's parameter in
-// the struct field of a variable segment.
-func segmentFromParam(s segment, param string) string {
-	if s.Format == formatUUID4 {
-		return param + ".String()"
-	}
-	return param
 }
 
 // nameExpression builds the string-concatenation expression used in String().
