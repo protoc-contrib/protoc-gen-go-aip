@@ -347,3 +347,26 @@ func (x *ProjectThing) ParseFullName() (ProjectThingName, error) {
 	}
 	return parsed, nil
 }
+
+// ParseName parses x.Name as ProjectThingName. Its parents may be the wildcard, but
+// not the thing itself. A failure is a *aip_go.FieldError naming name.
+func (x *ReadProjectThingRequest) ParseName() (ProjectThingName, error) {
+	parsed, err := ParseProjectThingName(x.GetName())
+	if err != nil {
+		return ProjectThingName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	if parsed.ThingID == "-" {
+		return ProjectThingName{}, aip_go.NewFieldError(x, "name", fmt.Errorf("thing: the wildcard is not an id"))
+	}
+	return parsed, nil
+}
+
+// ParseParent parses x.Parent as ProjectName. A failure is a
+// *aip_go.FieldError naming parent.
+func (x *ListProjectThingsRequest) ParseParent() (ProjectName, error) {
+	parsed, err := ParseProjectName(x.GetParent())
+	if err != nil {
+		return ProjectName{}, aip_go.NewFieldError(x, "parent", err)
+	}
+	return parsed, nil
+}

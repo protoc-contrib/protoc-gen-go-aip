@@ -159,6 +159,97 @@ func (x *ProjectThing) GetName() string {
 	return ""
 }
 
+// ReadProjectThingRequest and ListProjectThingsRequest are in buf.gen.yaml's
+// wildcard_requests. The own segment of a name, a string here, may not be the
+// wildcard; a parent may be, whole.
+type ReadProjectThingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReadProjectThingRequest) Reset() {
+	*x = ReadProjectThingRequest{}
+	mi := &file_simple_simple_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReadProjectThingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReadProjectThingRequest) ProtoMessage() {}
+
+func (x *ReadProjectThingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_simple_simple_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReadProjectThingRequest.ProtoReflect.Descriptor instead.
+func (*ReadProjectThingRequest) Descriptor() ([]byte, []int) {
+	return file_simple_simple_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ReadProjectThingRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type ListProjectThingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Parent        string                 `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListProjectThingsRequest) Reset() {
+	*x = ListProjectThingsRequest{}
+	mi := &file_simple_simple_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListProjectThingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListProjectThingsRequest) ProtoMessage() {}
+
+func (x *ListProjectThingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_simple_simple_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListProjectThingsRequest.ProtoReflect.Descriptor instead.
+func (*ListProjectThingsRequest) Descriptor() ([]byte, []int) {
+	return file_simple_simple_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListProjectThingsRequest) GetParent() string {
+	if x != nil {
+		return x.Parent
+	}
+	return ""
+}
+
 var File_simple_simple_proto protoreflect.FileDescriptor
 
 const file_simple_simple_proto_rawDesc = "" +
@@ -172,7 +263,13 @@ const file_simple_simple_proto_rawDesc = "" +
 	"\x13example.com/Project\x12\x12projects/{project}\"d\n" +
 	"\fProjectThing\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name:@\xeaA=\n" +
-	"\x18example.com/ProjectThing\x12!projects/{project}/things/{thing}BWZUgithub.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/simpleb\x06proto3"
+	"\x18example.com/ProjectThing\x12!projects/{project}/things/{thing}\"L\n" +
+	"\x17ReadProjectThingRequest\x121\n" +
+	"\x04name\x18\x01 \x01(\tB\x1d\xfaA\x1a\n" +
+	"\x18example.com/ProjectThingR\x04name\"L\n" +
+	"\x18ListProjectThingsRequest\x120\n" +
+	"\x06parent\x18\x01 \x01(\tB\x18\xfaA\x15\n" +
+	"\x13example.com/ProjectR\x06parentBWZUgithub.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/simpleb\x06proto3"
 
 var (
 	file_simple_simple_proto_rawDescOnce sync.Once
@@ -186,11 +283,13 @@ func file_simple_simple_proto_rawDescGZIP() []byte {
 	return file_simple_simple_proto_rawDescData
 }
 
-var file_simple_simple_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_simple_simple_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_simple_simple_proto_goTypes = []any{
-	(*Thing)(nil),        // 0: tests.simple.Thing
-	(*Project)(nil),      // 1: tests.simple.Project
-	(*ProjectThing)(nil), // 2: tests.simple.ProjectThing
+	(*Thing)(nil),                    // 0: tests.simple.Thing
+	(*Project)(nil),                  // 1: tests.simple.Project
+	(*ProjectThing)(nil),             // 2: tests.simple.ProjectThing
+	(*ReadProjectThingRequest)(nil),  // 3: tests.simple.ReadProjectThingRequest
+	(*ListProjectThingsRequest)(nil), // 4: tests.simple.ListProjectThingsRequest
 }
 var file_simple_simple_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -211,7 +310,7 @@ func file_simple_simple_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_simple_simple_proto_rawDesc), len(file_simple_simple_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

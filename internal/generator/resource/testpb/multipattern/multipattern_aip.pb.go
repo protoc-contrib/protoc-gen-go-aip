@@ -484,3 +484,13 @@ func (x *Book) ParseFullName() (BookName, error) {
 	}
 	return parsed, nil
 }
+
+// ParseName parses x.Name as BookName. A failure is a
+// *aip_go.FieldError naming name.
+func (x *ReadBookRequest) ParseName() (BookName, error) {
+	parsed, err := ParseBookName(x.GetName())
+	if err != nil {
+		return nil, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
+}

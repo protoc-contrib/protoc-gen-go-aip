@@ -232,7 +232,14 @@ var _ = Describe("resource.Generate", func() {
 		}
 		// the options of buf.gen.yaml, which generated the checked-in files
 		opts := &resource.Options{}
-		Expect(opts.Set("wildcard_requests", "tests.uuid.ReadItemRequest")).To(Succeed())
+		for _, request := range []string{
+			"tests.uuid.ReadItemRequest",
+			"tests.simple.ReadProjectThingRequest",
+			"tests.simple.ListProjectThingsRequest",
+			"tests.multipattern.ReadBookRequest",
+		} {
+			Expect(opts.Set("wildcard_requests", request)).To(Succeed())
+		}
 		for _, tc := range cases {
 			resp, err := runGenerator(opts, tc.fd)
 			Expect(err).NotTo(HaveOccurred(), tc.path)

@@ -76,8 +76,10 @@ A `.proto` with neither gets no companion.
   so its `ParseName()` / `ParseParent()` also calls `Validate()` and fails,
   naming the field, for a wildcard; any other reference may carry one. AIP-159
   lets a Get or a List read across parents with `-`, as each service chooses,
-  so the `wildcard_requests` option lists the requests whose parse does not
-  validate.
+  so the `wildcard_requests` option lists the requests that may: the
+  `ParseName()` of one accepts the wildcard in the parents of the name, but
+  refuses it in the resource's own segment, which is no resource, and its
+  `ParseParent()` only parses, since a parent may be a wildcard whole.
 - **`Validate()` / `Type()` / `Pattern()` / `ContainsWildcard()`** —
   every generated struct exposes these AIP-122/159 helpers (adopted from
   einride's plugin).
@@ -281,7 +283,7 @@ protoc \
 | Option                  | Default | Effect                                                                                                                  |
 | ----------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `allow_unresolved_refs` | `false` | When `true`, `google.api.resource_reference` fields whose target type is not in the compilation unit, or is declared only in several other packages, are skipped silently rather than producing a codegen error. |
-| `wildcard_requests`     | none    | The full name of a request, such as `library.v1.GetBookRequest`, whose `name` or `parent` may be an AIP-159 wildcard: its `ParseName` / `ParseParent` does not call `Validate`. Repeat the option for each request. A name no file declares is ignored, and its request stays strict. |
+| `wildcard_requests`     | none    | The full name of a request, such as `library.v1.GetBookRequest`, that may carry an AIP-159 wildcard. Its `ParseName` accepts `-` in the parents of the name but not in the resource's own segment (not checked for a resource of several patterns, whose parsed name is an interface), and its `ParseParent` only parses. Repeat the option for each request. A name no file declares is ignored, and its request stays strict. |
 
 ## Migration
 

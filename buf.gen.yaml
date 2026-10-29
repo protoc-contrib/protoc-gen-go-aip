@@ -10,3 +10,6 @@ plugins:
     opt:
       - module=github.com/protoc-contrib/protoc-gen-go-aip
       - wildcard_requests=tests.uuid.ReadItemRequest
+      - wildcard_requests=tests.simple.ReadProjectThingRequest
+      - wildcard_requests=tests.simple.ListProjectThingsRequest
+      - wildcard_requests=tests.multipattern.ReadBookRequest

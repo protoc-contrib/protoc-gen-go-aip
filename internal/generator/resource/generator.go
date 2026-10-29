@@ -1011,6 +1011,7 @@ type reference struct {
 	ParseFunc  protogen.GoIdent // callee that does the parsing
 	Interface  bool             // ParsedType is an interface, a resource of several patterns: its zero value is nil
 	Validate   bool             // the method also calls Validate on what it parsed: the field is a request's own name or parent
+	Own        *segment         // the method also refuses the wildcard in this segment: the field is the name of a request in wildcard_requests, whose parents may be one, but not the resource itself
 }
 
 // collectReferences walks every message in the file and returns the parse
@@ -1119,6 +1120,7 @@ func fieldReference(field *protogen.Field, reg *registry, opts *Options) (refere
 		}
 		return reference{}, false, fmt.Errorf("%v: reference to unknown type %q (set allow_unresolved_refs=true to skip)", field.GoIdent, rr.Type)
 	}
+	wildcard := opts.WildcardRequests[field.Parent.Desc.FullName()]
 	return reference{
 		Owner:      field.Parent,
 		FieldName:  field.GoName,
@@ -1127,7 +1129,8 @@ func fieldReference(field *protogen.Field, reg *registry, opts *Options) (refere
 		ParsedType: res.ParsedType,
 		ParseFunc:  res.ParseFunc,
 		Interface:  len(res.Patterns) > 1,
-		Validate:   isRequestName(field) && !opts.WildcardRequests[field.Parent.Desc.FullName()],
+		Validate:   isRequestName(field) && !wildcard,
+		Own:        ownOfName(field, res, wildcard),
 	}, true, nil
 }
 
@@ -1140,11 +1143,32 @@ func isRequestName(field *protogen.Field) bool {
 	return field.Desc.Name() == "name" || field.Desc.Name() == "parent"
 }
 
+// ownOfName returns the own segment of the resource a request's `name` names,
+// which a request in wildcard_requests still has to refuse the wildcard in:
+// AIP-159 lets a parent be "-", but not the resource itself, which is then no
+// resource at all. It is nil for any other field, for a request that is not
+// listed, which validates all its segments, and for a resource of several
+// patterns, whose parsed value is an interface with no segment to read.
+func ownOfName(field *protogen.Field, res *resource, wildcard bool) *segment {
+	if field.Desc.Name() != "name" || !wildcard || len(res.Patterns) != 1 {
+		return nil
+	}
+	seg, ok := ownSegment(res.Patterns[0])
+	if !ok {
+		return nil
+	}
+	return &seg
+}
+
 func emitReference(g *protogen.GeneratedFile, ref reference) {
-	if ref.Validate {
+	switch {
+	case ref.Own != nil:
+		g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, ". Its parents may be the wildcard, but")
+		g.P("// not the ", ref.Own.Name, " itself. A failure is a *", aipPackage.Ident("FieldError"), " naming ", ref.ProtoField, ".")
+	case ref.Validate:
 		g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, " and validates it, so a")
 		g.P("// wildcard is no name. A failure is a *", aipPackage.Ident("FieldError"), " naming ", ref.ProtoField, ".")
-	} else {
+	default:
 		g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, ". A failure is a")
 		g.P("// *", aipPackage.Ident("FieldError"), " naming ", ref.ProtoField, ".")
 	}
@@ -1163,6 +1187,18 @@ func emitReference(g *protogen.GeneratedFile, ref reference) {
 	if ref.Validate {
 		g.P("if err := parsed.Validate(); err != nil {")
 		g.P(append(append([]any{"return "}, zero...), ", ", aipPackage.Ident("NewFieldError"), `(x, "`, ref.ProtoField, `", err)`)...)
+		g.P("}")
+	}
+	if ref.Own != nil {
+		field := "parsed." + ref.Own.FieldName()
+		if ref.Own.Format == formatUUID4 {
+			// the id accessor fails for the wildcard, which is no id
+			g.P("if _, err := parsed.Parse", ref.Own.FieldName(), "(); err != nil {")
+			g.P(append(append([]any{"return "}, zero...), ", ", aipPackage.Ident("NewFieldError"), `(x, "`, ref.ProtoField, `", err)`)...)
+		} else {
+			g.P("if ", field, ` == "-" {`)
+			g.P(append(append([]any{"return "}, zero...), ", ", aipPackage.Ident("NewFieldError"), `(x, "`, ref.ProtoField, `", `, fmtPackage.Ident("Errorf"), `("`, ref.Own.Name, `: the wildcard is not an id"))`)...)
+		}
 		g.P("}")
 	}
 	g.P("return parsed, nil")
