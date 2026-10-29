@@ -61,7 +61,9 @@ message CreateItemRequest {
 
 // GetItemRequest and ListItemsRequest carry the name a standard method acts
 // on: their ParseName and ParseParent also validate it, so a wildcard is no
-// name. ScopeItemsRequest's `scope` is any other reference, which may be one.
+// name. ReadItemRequest is one of buf.gen.yaml's wildcard_requests, so its
+// ParseName does not. ScopeItemsRequest's `scope` is any other reference,
+// which may be one.
 message GetItemRequest {
   string name = 1 [(google.api.resource_reference) = {type: "example.com/Item"}];
 }
@@ -72,4 +74,8 @@ message ListItemsRequest {
 
 message ScopeItemsRequest {
   string scope = 1 [(google.api.resource_reference) = {type: "example.com/Organization"}];
+}
+
+message ReadItemRequest {
+  string name = 1 [(google.api.resource_reference) = {type: "example.com/Item"}];
 }

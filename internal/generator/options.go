@@ -28,6 +28,8 @@ func (o *Options) Set(name, value string) error {
 		}
 		o.Resource.AllowUnresolvedRefs = v
 		return nil
+	case "wildcard_requests":
+		return o.Resource.Set(name, value)
 	default:
 		return fmt.Errorf("unknown plugin option %q", name)
 	}

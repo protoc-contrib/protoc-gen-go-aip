@@ -329,7 +329,9 @@ func (x *CreateItemRequest) GetItemId() string {
 
 // GetItemRequest and ListItemsRequest carry the name a standard method acts
 // on: their ParseName and ParseParent also validate it, so a wildcard is no
-// name. ScopeItemsRequest's `scope` is any other reference, which may be one.
+// name. ReadItemRequest is one of buf.gen.yaml's wildcard_requests, so its
+// ParseName does not. ScopeItemsRequest's `scope` is any other reference,
+// which may be one.
 type GetItemRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -462,6 +464,50 @@ func (x *ScopeItemsRequest) GetScope() string {
 	return ""
 }
 
+type ReadItemRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReadItemRequest) Reset() {
+	*x = ReadItemRequest{}
+	mi := &file_uuid_uuid_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReadItemRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReadItemRequest) ProtoMessage() {}
+
+func (x *ReadItemRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_uuid_uuid_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReadItemRequest.ProtoReflect.Descriptor instead.
+func (*ReadItemRequest) Descriptor() ([]byte, []int) {
+	return file_uuid_uuid_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ReadItemRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 var File_uuid_uuid_proto protoreflect.FileDescriptor
 
 const file_uuid_uuid_proto_rawDesc = "" +
@@ -498,7 +544,10 @@ const file_uuid_uuid_proto_rawDesc = "" +
 	"\x18example.com/OrganizationR\x06parent\"H\n" +
 	"\x11ScopeItemsRequest\x123\n" +
 	"\x05scope\x18\x01 \x01(\tB\x1d\xfaA\x1a\n" +
-	"\x18example.com/OrganizationR\x05scopeBUZSgithub.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/uuidb\x06proto3"
+	"\x18example.com/OrganizationR\x05scope\"<\n" +
+	"\x0fReadItemRequest\x12)\n" +
+	"\x04name\x18\x01 \x01(\tB\x15\xfaA\x12\n" +
+	"\x10example.com/ItemR\x04nameBUZSgithub.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/uuidb\x06proto3"
 
 var (
 	file_uuid_uuid_proto_rawDescOnce sync.Once
@@ -512,7 +561,7 @@ func file_uuid_uuid_proto_rawDescGZIP() []byte {
 	return file_uuid_uuid_proto_rawDescData
 }
 
-var file_uuid_uuid_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_uuid_uuid_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_uuid_uuid_proto_goTypes = []any{
 	(*Collection)(nil),                // 0: tests.uuid.Collection
 	(*CreateCollectionRequest)(nil),   // 1: tests.uuid.CreateCollectionRequest
@@ -523,6 +572,7 @@ var file_uuid_uuid_proto_goTypes = []any{
 	(*GetItemRequest)(nil),            // 6: tests.uuid.GetItemRequest
 	(*ListItemsRequest)(nil),          // 7: tests.uuid.ListItemsRequest
 	(*ScopeItemsRequest)(nil),         // 8: tests.uuid.ScopeItemsRequest
+	(*ReadItemRequest)(nil),           // 9: tests.uuid.ReadItemRequest
 }
 var file_uuid_uuid_proto_depIdxs = []int32{
 	0, // 0: tests.uuid.CreateCollectionRequest.collection:type_name -> tests.uuid.Collection
@@ -546,7 +596,7 @@ func file_uuid_uuid_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_uuid_uuid_proto_rawDesc), len(file_uuid_uuid_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

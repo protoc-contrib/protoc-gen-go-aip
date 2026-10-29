@@ -230,8 +230,11 @@ var _ = Describe("resource.Generate", func() {
 			{v2pb.File_versions_v2_library_proto, "versions/v2/library_aip.pb.go"},
 			{crosspb.File_crosspackage_crosspackage_proto, "crosspackage/crosspackage_aip.pb.go"},
 		}
+		// the options of buf.gen.yaml, which generated the checked-in files
+		opts := &resource.Options{}
+		Expect(opts.Set("wildcard_requests", "tests.uuid.ReadItemRequest")).To(Succeed())
 		for _, tc := range cases {
-			resp, err := runGenerator(nil, tc.fd)
+			resp, err := runGenerator(opts, tc.fd)
 			Expect(err).NotTo(HaveOccurred(), tc.path)
 			got := fileByName(resp, tc.path)
 			Expect(got).NotTo(BeEmpty(), tc.path)
@@ -280,6 +283,19 @@ var _ = Describe("resource.Options.Set", func() {
 		Expect(opts.AllowUnresolvedRefs).To(BeTrue())
 	})
 
+	It("accepts wildcard_requests more than once", func() {
+		opts := &resource.Options{}
+		Expect(opts.Set("wildcard_requests", "pkg.GetItemRequest")).To(Succeed())
+		Expect(opts.Set("wildcard_requests", "pkg.ListItemsRequest")).To(Succeed())
+		Expect(opts.WildcardRequests).To(HaveLen(2))
+		Expect(opts.WildcardRequests).To(HaveKey(protoreflect.FullName("pkg.GetItemRequest")))
+	})
+
+	It("rejects an empty wildcard_requests", func() {
+		opts := &resource.Options{}
+		Expect(opts.Set("wildcard_requests", "")).To(MatchError(ContainSubstring("no request name")))
+	})
+
 	It("rejects non-bool values for allow_unresolved_refs", func() {
 		opts := &resource.Options{}
 		Expect(opts.Set("allow_unresolved_refs", "sure")).To(MatchError(ContainSubstring("invalid value")))
@@ -287,6 +303,20 @@ var _ = Describe("resource.Options.Set", func() {
 })
 
 var _ = Describe("resource.Generate validation", func() {
+	It("validates the name of a request unless wildcard_requests lists it", func() {
+		strict, err := runGenerator(nil, uuidpb.File_uuid_uuid_proto)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fileByName(strict, "uuid/uuid_aip.pb.go")).To(ContainSubstring("func (x *GetItemRequest) ParseName() (ItemName, error) {\n\tparsed, err := ParseItemName(x.GetName())\n\tif err != nil {\n\t\treturn ItemName{}, aip_go.NewFieldError(x, \"name\", err)\n\t}\n\tif err := parsed.Validate()"))
+
+		opts := &resource.Options{}
+		Expect(opts.Set("wildcard_requests", "tests.uuid.GetItemRequest")).To(Succeed())
+		lenient, err := runGenerator(opts, uuidpb.File_uuid_uuid_proto)
+		Expect(err).NotTo(HaveOccurred())
+		out := fileByName(lenient, "uuid/uuid_aip.pb.go")
+		Expect(out).NotTo(ContainSubstring("func (x *GetItemRequest) ParseName() (ItemName, error) {\n\tparsed, err := ParseItemName(x.GetName())\n\tif err != nil {\n\t\treturn ItemName{}, aip_go.NewFieldError(x, \"name\", err)\n\t}\n\tif err := parsed.Validate()"))
+		Expect(out).To(ContainSubstring("func (x *ListItemsRequest) ParseParent() (OrganizationName, error) {\n\tparsed, err := ParseOrganizationName(x.GetParent())\n\tif err != nil {\n\t\treturn OrganizationName{}, aip_go.NewFieldError(x, \"parent\", err)\n\t}\n\tif err := parsed.Validate()"))
+	})
+
 	It("emits a runtime guard for empty variable segments", func() {
 		resp, err := runGenerator(nil, simplepb.File_simple_simple_proto)
 		Expect(err).NotTo(HaveOccurred())

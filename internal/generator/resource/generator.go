@@ -1127,14 +1127,15 @@ func fieldReference(field *protogen.Field, reg *registry, opts *Options) (refere
 		ParsedType: res.ParsedType,
 		ParseFunc:  res.ParseFunc,
 		Interface:  len(res.Patterns) > 1,
-		Validate:   isRequestName(field),
+		Validate:   isRequestName(field) && !opts.WildcardRequests[field.Parent.Desc.FullName()],
 	}, true, nil
 }
 
 // isRequestName reports whether field is the `name` or `parent` of a request,
 // the resource name a standard method (AIP-131 to AIP-135) acts on. That name
 // is the key: a wildcard or a non-canonical id is no name to act on, so its
-// parse also validates it. Any other reference may carry a wildcard.
+// parse also validates it, unless the request is one of wildcard_requests. Any
+// other reference may carry a wildcard.
 func isRequestName(field *protogen.Field) bool {
 	return field.Desc.Name() == "name" || field.Desc.Name() == "parent"
 }

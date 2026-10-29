@@ -491,6 +491,16 @@ func (x *ScopeItemsRequest) ParseScope() (OrganizationName, error) {
 	return parsed, nil
 }
 
+// ParseName parses x.Name as ItemName. A failure is a
+// *aip_go.FieldError naming name.
+func (x *ReadItemRequest) ParseName() (ItemName, error) {
+	parsed, err := ParseItemName(x.GetName())
+	if err != nil {
+		return ItemName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
+}
+
 // ParseCollectionID returns the ID the caller proposed for the "example.com/Collection"
 // being created, or uuid.Nil() when they left collection_id empty.
 //

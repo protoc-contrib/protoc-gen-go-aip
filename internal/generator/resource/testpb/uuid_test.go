@@ -127,6 +127,17 @@ var _ = Describe("UUID-validated resource names", func() {
 			Expect(got.IsWildcard()).To(BeTrue())
 		})
 
+		It("is a name for a request that wildcard_requests lists, which ParseName does not validate", func() {
+			item := stduuid.MustParse("33333333-3333-4333-8333-333333333333")
+
+			got, err := (&uuid.ReadItemRequest{Name: "organizations/-/items/" + item.String()}).ParseName()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got.Parent().IsWildcard()).To(BeTrue())
+
+			_, err = (&uuid.ReadItemRequest{Name: "bad"}).ParseName()
+			Expect(err).To(MatchError(ContainSubstring("name: ")))
+		})
+
 		It("leaves a request's name that is whole to its ParseName", func() {
 			org := stduuid.MustParse("22222222-2222-4222-8222-222222222222")
 			item := stduuid.MustParse("33333333-3333-4333-8333-333333333333")
