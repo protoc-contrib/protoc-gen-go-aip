@@ -491,11 +491,14 @@ func (x *ScopeItemsRequest) ParseScope() (OrganizationName, error) {
 	return parsed, nil
 }
 
-// ParseName parses x.Name as ItemName. A failure is a
-// *aip_go.FieldError naming name.
+// ParseName parses x.Name as ItemName. Its parents may be the wildcard, but
+// not the item itself. A failure is a *aip_go.FieldError naming name.
 func (x *ReadItemRequest) ParseName() (ItemName, error) {
 	parsed, err := ParseItemName(x.GetName())
 	if err != nil {
+		return ItemName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	if _, err := parsed.ParseItemID(); err != nil {
 		return ItemName{}, aip_go.NewFieldError(x, "name", err)
 	}
 	return parsed, nil

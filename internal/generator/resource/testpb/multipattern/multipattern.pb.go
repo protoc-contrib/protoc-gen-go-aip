@@ -159,6 +159,53 @@ func (x *Book) GetName() string {
 	return ""
 }
 
+// ReadBookRequest is in buf.gen.yaml's wildcard_requests. Book has several
+// patterns, so its parsed name is an interface with no own segment to refuse
+// the wildcard in: the parse only parses.
+type ReadBookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReadBookRequest) Reset() {
+	*x = ReadBookRequest{}
+	mi := &file_multipattern_multipattern_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReadBookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReadBookRequest) ProtoMessage() {}
+
+func (x *ReadBookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_multipattern_multipattern_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReadBookRequest.ProtoReflect.Descriptor instead.
+func (*ReadBookRequest) Descriptor() ([]byte, []int) {
+	return file_multipattern_multipattern_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ReadBookRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 var File_multipattern_multipattern_proto protoreflect.FileDescriptor
 
 const file_multipattern_multipattern_proto_rawDesc = "" +
@@ -172,7 +219,10 @@ const file_multipattern_multipattern_proto_rawDesc = "" +
 	"\x12example.com/Author\x12\x10authors/{author}\"u\n" +
 	"\x04Book\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name:Y\xeaAV\n" +
-	"\x10example.com/Book\x12#publishers/{publisher}/books/{book}\x12\x1dauthors/{author}/books/{book}B]Z[github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/multipatternb\x06proto3"
+	"\x10example.com/Book\x12#publishers/{publisher}/books/{book}\x12\x1dauthors/{author}/books/{book}\"<\n" +
+	"\x0fReadBookRequest\x12)\n" +
+	"\x04name\x18\x01 \x01(\tB\x15\xfaA\x12\n" +
+	"\x10example.com/BookR\x04nameB]Z[github.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/multipatternb\x06proto3"
 
 var (
 	file_multipattern_multipattern_proto_rawDescOnce sync.Once
@@ -186,11 +236,12 @@ func file_multipattern_multipattern_proto_rawDescGZIP() []byte {
 	return file_multipattern_multipattern_proto_rawDescData
 }
 
-var file_multipattern_multipattern_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_multipattern_multipattern_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_multipattern_multipattern_proto_goTypes = []any{
-	(*Publisher)(nil), // 0: tests.multipattern.Publisher
-	(*Author)(nil),    // 1: tests.multipattern.Author
-	(*Book)(nil),      // 2: tests.multipattern.Book
+	(*Publisher)(nil),       // 0: tests.multipattern.Publisher
+	(*Author)(nil),          // 1: tests.multipattern.Author
+	(*Book)(nil),            // 2: tests.multipattern.Book
+	(*ReadBookRequest)(nil), // 3: tests.multipattern.ReadBookRequest
 }
 var file_multipattern_multipattern_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -211,7 +262,7 @@ func file_multipattern_multipattern_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_multipattern_multipattern_proto_rawDesc), len(file_multipattern_multipattern_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

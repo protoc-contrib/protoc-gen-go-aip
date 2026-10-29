@@ -38,3 +38,10 @@ message Book {
 
   string name = 1;
 }
+
+// ReadBookRequest is in buf.gen.yaml's wildcard_requests. Book has several
+// patterns, so its parsed name is an interface with no own segment to refuse
+// the wildcard in: the parse only parses.
+message ReadBookRequest {
+  string name = 1 [(google.api.resource_reference) = {type: "example.com/Book"}];
+}

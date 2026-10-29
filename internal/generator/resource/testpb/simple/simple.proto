@@ -37,3 +37,14 @@ message ProjectThing {
 
   string name = 1;
 }
+
+// ReadProjectThingRequest and ListProjectThingsRequest are in buf.gen.yaml's
+// wildcard_requests. The own segment of a name, a string here, may not be the
+// wildcard; a parent may be, whole.
+message ReadProjectThingRequest {
+  string name = 1 [(google.api.resource_reference) = {type: "example.com/ProjectThing"}];
+}
+
+message ListProjectThingsRequest {
+  string parent = 1 [(google.api.resource_reference) = {type: "example.com/Project"}];
+}

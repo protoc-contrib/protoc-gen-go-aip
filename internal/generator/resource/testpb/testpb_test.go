@@ -420,3 +420,48 @@ func checkErr(t *testing.T, got error, want string) {
 		t.Fatalf("err mismatch:\n got:  %q\n want: %q", gotMsg, want)
 	}
 }
+
+// TestWildcardRequests covers the requests buf.gen.yaml lists in
+// wildcard_requests: a name refuses the wildcard in its own segment only, as a
+// string segment or not, and a parent or a resource of several patterns is
+// parsed and no more.
+func TestWildcardRequests(t *testing.T) {
+	t.Run("a name's own segment, a string, is no wildcard", func(t *testing.T) {
+		got, err := (&simple.ReadProjectThingRequest{Name: "projects/-/things/foo"}).ParseName()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if want := (simple.ProjectThingName{ProjectID: "-", ThingID: "foo"}); got != want {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+
+		_, err = (&simple.ReadProjectThingRequest{Name: "projects/p/things/-"}).ParseName()
+		var field *aip.FieldError
+		if !errors.As(err, &field) || field.Field() != "name" {
+			t.Fatalf("got %v, want a FieldError naming name", err)
+		}
+		if want := "name: thing: the wildcard is not an id"; err.Error() != want {
+			t.Fatalf("got %q, want %q", err.Error(), want)
+		}
+	})
+
+	t.Run("a parent may be the wildcard", func(t *testing.T) {
+		got, err := (&simple.ListProjectThingsRequest{Parent: "projects/-"}).ParseParent()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !got.IsWildcard() {
+			t.Fatalf("got %v, want the wildcard", got)
+		}
+	})
+
+	t.Run("a resource of several patterns is only parsed", func(t *testing.T) {
+		got, err := (&multipattern.ReadBookRequest{Name: "publishers/-/books/-"}).ParseName()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !got.IsWildcard() {
+			t.Fatalf("got %v, want the wildcard", got)
+		}
+	})
+}

@@ -127,12 +127,18 @@ var _ = Describe("UUID-validated resource names", func() {
 			Expect(got.IsWildcard()).To(BeTrue())
 		})
 
-		It("is a name for a request that wildcard_requests lists, which ParseName does not validate", func() {
+		It("is a name, in its parents only, for a request that wildcard_requests lists", func() {
 			item := stduuid.MustParse("33333333-3333-4333-8333-333333333333")
 
 			got, err := (&uuid.ReadItemRequest{Name: "organizations/-/items/" + item.String()}).ParseName()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(got.Parent().IsWildcard()).To(BeTrue())
+
+			_, err = (&uuid.ReadItemRequest{Name: "organizations/-/items/-"}).ParseName()
+			Expect(err).To(MatchError("name: item: the wildcard is not an id"))
+			var fieldErr *aip.FieldError
+			Expect(errors.As(err, &fieldErr)).To(BeTrue())
+			Expect(fieldErr.Field()).To(Equal("name"))
 
 			_, err = (&uuid.ReadItemRequest{Name: "bad"}).ParseName()
 			Expect(err).To(MatchError(ContainSubstring("name: ")))
