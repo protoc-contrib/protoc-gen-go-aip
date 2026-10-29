@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.9.0...v0.10.0) (2026-10-29)
+
+
+### Features
+
+* refuse the wildcard in the own segment of a name in wildcard_requests ([#99](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/99)) ([061c719](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/061c719ad5024433f87fdeaa598dc5c8ad715e8b))
+
 ## [0.9.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.8.0...v0.9.0) (2026-10-29)
 
 
