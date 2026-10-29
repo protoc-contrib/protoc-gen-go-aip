@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.8.0...v0.9.0) (2026-10-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* ParseName and ParseParent on a request refuse a wildcard, unless wildcard_requests lists the request.
+
+### Features
+
+* validate the name or parent of a request when parsing it, and add wildcard_requests ([#96](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/96)) ([4085582](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/4085582e364a14fb1e72f28202cb1a3ba671d156))
+
 ## [0.8.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.7.0...v0.8.0) (2026-10-27)
 
 
