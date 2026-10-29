@@ -1010,6 +1010,7 @@ type reference struct {
 	ParsedType protogen.GoIdent // return type
 	ParseFunc  protogen.GoIdent // callee that does the parsing
 	Interface  bool             // ParsedType is an interface, a resource of several patterns: its zero value is nil
+	Validate   bool             // the method also calls Validate on what it parsed: the field is a request's own name or parent
 }
 
 // collectReferences walks every message in the file and returns the parse
@@ -1126,12 +1127,26 @@ func fieldReference(field *protogen.Field, reg *registry, opts *Options) (refere
 		ParsedType: res.ParsedType,
 		ParseFunc:  res.ParseFunc,
 		Interface:  len(res.Patterns) > 1,
+		Validate:   isRequestName(field),
 	}, true, nil
 }
 
+// isRequestName reports whether field is the `name` or `parent` of a request,
+// the resource name a standard method (AIP-131 to AIP-135) acts on. That name
+// is the key: a wildcard or a non-canonical id is no name to act on, so its
+// parse also validates it. Any other reference may carry a wildcard.
+func isRequestName(field *protogen.Field) bool {
+	return field.Desc.Name() == "name" || field.Desc.Name() == "parent"
+}
+
 func emitReference(g *protogen.GeneratedFile, ref reference) {
-	g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, ". A failure is a")
-	g.P("// *", aipPackage.Ident("FieldError"), " naming ", ref.ProtoField, ".")
+	if ref.Validate {
+		g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, " and validates it, so a")
+		g.P("// wildcard is no name. A failure is a *", aipPackage.Ident("FieldError"), " naming ", ref.ProtoField, ".")
+	} else {
+		g.P("// ", ref.MethodName, " parses x.", ref.FieldName, " as ", ref.ParsedType.GoName, ". A failure is a")
+		g.P("// *", aipPackage.Ident("FieldError"), " naming ", ref.ProtoField, ".")
+	}
 	g.P("func (x *", ref.Owner.GoIdent, ") ", ref.MethodName, "() (", ref.ParsedType, ", error) {")
 	// The getter, not the field: an explicit-presence field — proto2
 	// `optional`, editions' default — is a *string, and the opaque API has no
@@ -1144,6 +1159,11 @@ func emitReference(g *protogen.GeneratedFile, ref reference) {
 	}
 	g.P(append(append([]any{"return "}, zero...), ", ", aipPackage.Ident("NewFieldError"), `(x, "`, ref.ProtoField, `", err)`)...)
 	g.P("}")
+	if ref.Validate {
+		g.P("if err := parsed.Validate(); err != nil {")
+		g.P(append(append([]any{"return "}, zero...), ", ", aipPackage.Ident("NewFieldError"), `(x, "`, ref.ProtoField, `", err)`)...)
+		g.P("}")
+	}
 	g.P("return parsed, nil")
 	g.P("}")
 	g.P()

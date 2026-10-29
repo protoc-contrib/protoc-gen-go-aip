@@ -72,6 +72,11 @@ A `.proto` with neither gets no companion.
   so is one package declaring the same type twice.
   Set the plugin option `allow_unresolved_refs=true` to skip references
   whose target type isn't in the compilation unit, or is ambiguous.
+  The `name` or `parent` of a request is the name a standard method acts on,
+  so its `ParseName()` / `ParseParent()` also calls `Validate()` and fails,
+  naming the field, for a wildcard; any other reference may carry one. A
+  method that reads across parents, such as Get Item with a wildcard
+  parent, parses `req.GetName()` itself.
 - **`Validate()` / `Type()` / `Pattern()` / `ContainsWildcard()`** —
   every generated struct exposes these AIP-122/159 helpers (adopted from
   einride's plugin).

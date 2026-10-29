@@ -327,6 +327,141 @@ func (x *CreateItemRequest) GetItemId() string {
 	return ""
 }
 
+// GetItemRequest and ListItemsRequest carry the name a standard method acts
+// on: their ParseName and ParseParent also validate it, so a wildcard is no
+// name. ScopeItemsRequest's `scope` is any other reference, which may be one.
+type GetItemRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetItemRequest) Reset() {
+	*x = GetItemRequest{}
+	mi := &file_uuid_uuid_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetItemRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetItemRequest) ProtoMessage() {}
+
+func (x *GetItemRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_uuid_uuid_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetItemRequest.ProtoReflect.Descriptor instead.
+func (*GetItemRequest) Descriptor() ([]byte, []int) {
+	return file_uuid_uuid_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetItemRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type ListItemsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Parent        string                 `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListItemsRequest) Reset() {
+	*x = ListItemsRequest{}
+	mi := &file_uuid_uuid_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListItemsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListItemsRequest) ProtoMessage() {}
+
+func (x *ListItemsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_uuid_uuid_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListItemsRequest.ProtoReflect.Descriptor instead.
+func (*ListItemsRequest) Descriptor() ([]byte, []int) {
+	return file_uuid_uuid_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListItemsRequest) GetParent() string {
+	if x != nil {
+		return x.Parent
+	}
+	return ""
+}
+
+type ScopeItemsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Scope         string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScopeItemsRequest) Reset() {
+	*x = ScopeItemsRequest{}
+	mi := &file_uuid_uuid_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScopeItemsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScopeItemsRequest) ProtoMessage() {}
+
+func (x *ScopeItemsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_uuid_uuid_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScopeItemsRequest.ProtoReflect.Descriptor instead.
+func (*ScopeItemsRequest) Descriptor() ([]byte, []int) {
+	return file_uuid_uuid_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ScopeItemsRequest) GetScope() string {
+	if x != nil {
+		return x.Scope
+	}
+	return ""
+}
+
 var File_uuid_uuid_proto protoreflect.FileDescriptor
 
 const file_uuid_uuid_proto_rawDesc = "" +
@@ -354,7 +489,16 @@ const file_uuid_uuid_proto_rawDesc = "" +
 	"\x11CreateItemRequest\x12\x16\n" +
 	"\x06parent\x18\x01 \x01(\tR\x06parent\x12$\n" +
 	"\x04item\x18\x02 \x01(\v2\x10.tests.uuid.ItemR\x04item\x12!\n" +
-	"\aitem_id\x18\x03 \x01(\tB\b\xe2\x8c\xcf\xd7\b\x02\b\x01R\x06itemIdBUZSgithub.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/uuidb\x06proto3"
+	"\aitem_id\x18\x03 \x01(\tB\b\xe2\x8c\xcf\xd7\b\x02\b\x01R\x06itemId\";\n" +
+	"\x0eGetItemRequest\x12)\n" +
+	"\x04name\x18\x01 \x01(\tB\x15\xfaA\x12\n" +
+	"\x10example.com/ItemR\x04name\"I\n" +
+	"\x10ListItemsRequest\x125\n" +
+	"\x06parent\x18\x01 \x01(\tB\x1d\xfaA\x1a\n" +
+	"\x18example.com/OrganizationR\x06parent\"H\n" +
+	"\x11ScopeItemsRequest\x123\n" +
+	"\x05scope\x18\x01 \x01(\tB\x1d\xfaA\x1a\n" +
+	"\x18example.com/OrganizationR\x05scopeBUZSgithub.com/protoc-contrib/protoc-gen-go-aip/internal/generator/resource/testpb/uuidb\x06proto3"
 
 var (
 	file_uuid_uuid_proto_rawDescOnce sync.Once
@@ -368,7 +512,7 @@ func file_uuid_uuid_proto_rawDescGZIP() []byte {
 	return file_uuid_uuid_proto_rawDescData
 }
 
-var file_uuid_uuid_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_uuid_uuid_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_uuid_uuid_proto_goTypes = []any{
 	(*Collection)(nil),                // 0: tests.uuid.Collection
 	(*CreateCollectionRequest)(nil),   // 1: tests.uuid.CreateCollectionRequest
@@ -376,6 +520,9 @@ var file_uuid_uuid_proto_goTypes = []any{
 	(*CreateOrganizationRequest)(nil), // 3: tests.uuid.CreateOrganizationRequest
 	(*Item)(nil),                      // 4: tests.uuid.Item
 	(*CreateItemRequest)(nil),         // 5: tests.uuid.CreateItemRequest
+	(*GetItemRequest)(nil),            // 6: tests.uuid.GetItemRequest
+	(*ListItemsRequest)(nil),          // 7: tests.uuid.ListItemsRequest
+	(*ScopeItemsRequest)(nil),         // 8: tests.uuid.ScopeItemsRequest
 }
 var file_uuid_uuid_proto_depIdxs = []int32{
 	0, // 0: tests.uuid.CreateCollectionRequest.collection:type_name -> tests.uuid.Collection
@@ -399,7 +546,7 @@ func file_uuid_uuid_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_uuid_uuid_proto_rawDesc), len(file_uuid_uuid_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

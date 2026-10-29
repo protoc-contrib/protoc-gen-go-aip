@@ -455,6 +455,42 @@ func (x *Item) ParseFullName() (ItemName, error) {
 	return parsed, nil
 }
 
+// ParseName parses x.Name as ItemName and validates it, so a
+// wildcard is no name. A failure is a *aip_go.FieldError naming name.
+func (x *GetItemRequest) ParseName() (ItemName, error) {
+	parsed, err := ParseItemName(x.GetName())
+	if err != nil {
+		return ItemName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	if err := parsed.Validate(); err != nil {
+		return ItemName{}, aip_go.NewFieldError(x, "name", err)
+	}
+	return parsed, nil
+}
+
+// ParseParent parses x.Parent as OrganizationName and validates it, so a
+// wildcard is no name. A failure is a *aip_go.FieldError naming parent.
+func (x *ListItemsRequest) ParseParent() (OrganizationName, error) {
+	parsed, err := ParseOrganizationName(x.GetParent())
+	if err != nil {
+		return OrganizationName{}, aip_go.NewFieldError(x, "parent", err)
+	}
+	if err := parsed.Validate(); err != nil {
+		return OrganizationName{}, aip_go.NewFieldError(x, "parent", err)
+	}
+	return parsed, nil
+}
+
+// ParseScope parses x.Scope as OrganizationName. A failure is a
+// *aip_go.FieldError naming scope.
+func (x *ScopeItemsRequest) ParseScope() (OrganizationName, error) {
+	parsed, err := ParseOrganizationName(x.GetScope())
+	if err != nil {
+		return OrganizationName{}, aip_go.NewFieldError(x, "scope", err)
+	}
+	return parsed, nil
+}
+
 // ParseCollectionID returns the ID the caller proposed for the "example.com/Collection"
 // being created, or uuid.Nil() when they left collection_id empty.
 //

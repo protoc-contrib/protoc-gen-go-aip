@@ -108,6 +108,34 @@ var _ = Describe("UUID-validated resource names", func() {
 			Expect(uuid.CollectionName{CollectionID: "-"}.Validate()).To(MatchError(ContainSubstring("not a canonical non-nil UUID")))
 		})
 
+		It("is no name for a request to act on: its ParseName and ParseParent refuse it, naming the field", func() {
+			item := stduuid.MustParse("33333333-3333-4333-8333-333333333333")
+
+			_, err := (&uuid.GetItemRequest{Name: "organizations/-/items/" + item.String()}).ParseName()
+			Expect(err).To(MatchError("name: organization: not a canonical non-nil UUID"))
+			var fieldErr *aip.FieldError
+			Expect(errors.As(err, &fieldErr)).To(BeTrue())
+			Expect(fieldErr.Field()).To(Equal("name"))
+
+			_, err = (&uuid.ListItemsRequest{Parent: "organizations/-"}).ParseParent()
+			Expect(err).To(MatchError("parent: organization: not a canonical non-nil UUID"))
+		})
+
+		It("is a name for any other reference, which Validate is no part of", func() {
+			got, err := (&uuid.ScopeItemsRequest{Scope: "organizations/-"}).ParseScope()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got.IsWildcard()).To(BeTrue())
+		})
+
+		It("leaves a request's name that is whole to its ParseName", func() {
+			org := stduuid.MustParse("22222222-2222-4222-8222-222222222222")
+			item := stduuid.MustParse("33333333-3333-4333-8333-333333333333")
+
+			got, err := (&uuid.GetItemRequest{Name: "organizations/" + org.String() + "/items/" + item.String()}).ParseName()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(Equal(uuid.ItemName{OrganizationID: org.String(), ItemID: item.String()}))
+		})
+
 		It("is not in a name without it", func() {
 			got, err := uuid.ParseCollectionName("collections/11111111-1111-4111-8111-111111111111")
 			Expect(err).NotTo(HaveOccurred())
