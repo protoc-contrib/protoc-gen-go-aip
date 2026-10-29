@@ -9,3 +9,4 @@ plugins:
     out: .
     opt:
       - module=github.com/protoc-contrib/protoc-gen-go-aip
+      - wildcard_requests=tests.uuid.ReadItemRequest

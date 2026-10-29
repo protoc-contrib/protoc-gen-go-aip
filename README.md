@@ -72,6 +72,12 @@ A `.proto` with neither gets no companion.
   so is one package declaring the same type twice.
   Set the plugin option `allow_unresolved_refs=true` to skip references
   whose target type isn't in the compilation unit, or is ambiguous.
+  The `name` or `parent` of a request is the name a standard method acts on,
+  so its `ParseName()` / `ParseParent()` also calls `Validate()` and fails,
+  naming the field, for a wildcard; any other reference may carry one. AIP-159
+  lets a Get or a List read across parents with `-`, as each service chooses,
+  so the `wildcard_requests` option lists the requests whose parse does not
+  validate.
 - **`Validate()` / `Type()` / `Pattern()` / `ContainsWildcard()`** —
   every generated struct exposes these AIP-122/159 helpers (adopted from
   einride's plugin).
@@ -275,6 +281,7 @@ protoc \
 | Option                  | Default | Effect                                                                                                                  |
 | ----------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `allow_unresolved_refs` | `false` | When `true`, `google.api.resource_reference` fields whose target type is not in the compilation unit, or is declared only in several other packages, are skipped silently rather than producing a codegen error. |
+| `wildcard_requests`     | none    | The full name of a request, such as `library.v1.GetBookRequest`, whose `name` or `parent` may be an AIP-159 wildcard: its `ParseName` / `ParseParent` does not call `Validate`. Repeat the option for each request. A name no file declares is ignored, and its request stays strict. |
 
 ## Migration
 
