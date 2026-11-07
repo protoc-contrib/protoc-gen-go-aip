@@ -2,8 +2,8 @@
   description = "protoc-gen-go-aip - A protoc plugin that emits Go helpers for Google AIP resource patterns and List-RPC query handling";
 
   nixConfig = {
-    extra-substituters = [ "https://iamralch.cachix.org" ];
-    extra-trusted-public-keys = [ "iamralch.cachix.org-1:7ibHIuxZMlAMpTGV2RERcfdyl41nYHLHEFMfdyVqx/U=" ];
+    extra-substituters = [ "https://ralch.cachix.org" ];
+    extra-trusted-public-keys = [ "ralch.cachix.org-1:ti5RSqCJwd+VIv7dlxJEAVD98KIJDLxj1yJY+S80Q3A=" ];
   };
 
   inputs = {
