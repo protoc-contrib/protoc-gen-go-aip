@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.10.0...v0.11.0) (2026-11-07)
+
+
+### Features
+
+* **ci:** push the Nix build to Cachix ([#110](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/110)) ([6b1a34a](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/6b1a34ab95e9a714a8d563cfda1b885d48fe58e0))
+
+
+### Bug Fixes
+
+* **ci:** merge with the App token, and use the ralch cache ([#111](https://github.com/protoc-contrib/protoc-gen-go-aip/issues/111)) ([e0ee082](https://github.com/protoc-contrib/protoc-gen-go-aip/commit/e0ee08250beaf228e19a7552d38ffacfc365b1b3))
+
 ## [0.10.0](https://github.com/protoc-contrib/protoc-gen-go-aip/compare/v0.9.0...v0.10.0) (2026-10-29)
 
 
