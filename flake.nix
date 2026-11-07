@@ -4,11 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    nix-release-bin = {
-      url = "github:nixos-contrib/nix-release-bin";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
   };
 
   outputs =
@@ -16,7 +11,6 @@
       self,
       nixpkgs,
       flake-utils,
-      nix-release-bin,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -34,7 +28,7 @@
         # and so do this module's own fixtures.
         go = pkgs.go_1_27;
 
-        source = (pkgs.buildGoModule.override { inherit go; }) {
+        package = (pkgs.buildGoModule.override { inherit go; }) {
           pname = "protoc-gen-go-aip";
           inherit version;
           src = pkgs.lib.cleanSource ./.;
@@ -52,17 +46,7 @@
         };
       in
       {
-        packages = {
-          # The latest release binary, where it has one for the system: CI pins
-          # them in the manifest once the release has published them.
-          default = nix-release-bin.lib.mkReleaseBin {
-            inherit pkgs;
-            manifest = ./.github/config/nix-release-bin-manifest.json;
-            pname = "protoc-gen-go-aip";
-            fallback = source;
-          };
-          inherit source;
-        };
+        packages.default = package;
 
         devShells.default = pkgs.mkShell {
           name = "protoc-gen-go-aip";
